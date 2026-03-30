@@ -535,14 +535,56 @@ let editingId   = null;
 let deleteId    = null;
 
 /* ── API ─────────────────────────────────────────────────── */
+
+// Mapeamento: Apps Script (PT) → Frontend (EN)
+const STATUS_PT_TO_EN = { retornando: 'Retornando', disponivel: 'Disponível', locada: 'Locada' };
+const STATUS_EN_TO_PT = { 'Retornando': 'retornando', 'Disponível': 'disponivel', 'Locada': 'locada' };
+const MANUT_PT_TO_EN = { ok: 'Ok', em_revisao: 'Em revisão', com_defeito: 'Com defeito' };
+const MANUT_EN_TO_PT = { 'Ok': 'ok', 'Em revisão': 'em_revisao', 'Com defeito': 'com_defeito' };
+
+function fromSheet(m) {
+  return {
+    id: m.id,
+    name: m.maquina || '',
+    column: STATUS_PT_TO_EN[m.status] || 'Disponível',
+    currentClient: m.cliente_atual || '',
+    nextClient: m.proximo_cliente || '',
+    returnDate: m.data_retorno || '',
+    nextRentalDate: m.data_proxima_locacao || '',
+    maintenanceStatus: MANUT_PT_TO_EN[m.manutencao] || 'Ok'
+  };
+}
+
+function toSheet(m) {
+  return {
+    id: m.id,
+    maquina: m.name || '',
+    status: STATUS_EN_TO_PT[m.column] || 'disponivel',
+    cliente_atual: m.currentClient || '',
+    proximo_cliente: m.nextClient || '',
+    data_retorno: m.returnDate || '',
+    data_proxima_locacao: m.nextRentalDate || '',
+    manutencao: MANUT_EN_TO_PT[m.maintenanceStatus] || 'ok'
+  };
+}
+
 async function callApi(body) {
+  // Converter machine para formato do Sheets antes de enviar
+  if (body.machine) {
+    body = { ...body, machine: toSheet(body.machine) };
+  }
   const payload = encodeURIComponent(JSON.stringify(body));
   const url = API + '?payload=' + payload + '&_=' + Date.now();
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const txt = await res.text();
-    return JSON.parse(txt);
+    const json = JSON.parse(txt);
+    // Converter resposta do Sheets para formato do frontend
+    if (json.data && Array.isArray(json.data)) {
+      json.data = json.data.map(fromSheet);
+    }
+    return json;
   } catch(err) {
     console.error('callApi error:', err, 'url:', url);
     throw err;
