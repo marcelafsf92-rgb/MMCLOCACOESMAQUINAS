@@ -728,14 +728,21 @@ COLS.forEach(col => {
     if (!dragId) return;
     const mc = machines.find(m => m.id === dragId);
     if (!mc || mc.column === col) return;
+    const oldCol = mc.column;
     mc.column = col;
     render();
     setLoading(true);
     try {
+      console.log('DROP: id=' + mc.id + ' from=' + oldCol + ' to=' + col);
+      console.log('DROP toSheet:', JSON.stringify(toSheet(mc)));
       await callApi({ action: 'update', machine: mc });
       toast(`Movida para "${col}"`);
-    } catch {
+      await loadAll();
+    } catch(err) {
+      console.error('DROP error:', err);
       toast('Erro ao salvar. Tente novamente.', 'err');
+      mc.column = oldCol;
+      render();
     } finally {
       setLoading(false);
     }
