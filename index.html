@@ -131,6 +131,7 @@
 <div class="tabs"><div class="tabs-in">
   <button class="tbtn active" data-tab="status" onclick="switchTab('status')">Status <span class="tc" id="tcS">0</span></button>
   <button class="tbtn" data-tab="locadas" onclick="switchTab('locadas')">Locadas <span class="tc" id="tcL">0</span></button>
+  <button class="tbtn" data-tab="marcelo" onclick="switchTab('marcelo')">Obras Marcelo <span class="tc" id="tcM">0</span></button>
 </div></div>
 
 <div class="tbar"><div class="tbar-in">
@@ -146,6 +147,8 @@
 </div></div></div>
 
 <div class="tcont" id="tab-locadas"><div class="bwrap"><div class="lgrid" id="lGrid"></div></div></div>
+
+<div class="tcont" id="tab-marcelo"><div class="bwrap"><div class="lgrid" id="mGrid"></div></div></div>
 
 <div class="mbg" id="mBg"><div class="modal"><div class="mhd"><span class="mtitle" id="mT">Nova Máquina</span><button class="mx" id="mX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
 <div class="mbd">
@@ -191,22 +194,30 @@ function sL(on){const b=document.getElementById('loadBar'),s=document.getElement
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className='show '+t;setTimeout(()=>e.classList.remove('show'),3400)}
 function switchTab(t){curTab=t;document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('.tcont').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));render()}
 function filt(list){const q=document.getElementById('sI').value.toLowerCase().trim(),m=document.getElementById('fS').value;return list.filter(x=>{const qs=!q||(x.name||'').toLowerCase().includes(q)||(x.cc||'').toLowerCase().includes(q)||(x.nc||'').toLowerCase().includes(q);const ms=!m||x.ms===m;return qs&&ms})}
+function isMarcelo(m){const c=((m.cc||'')+'|'+(m.nc||'')).toLowerCase();return c.includes('obra marcelo')||c.includes('marcelo (obra)')||c.includes('obras marcelo')}
 function render(){
-  const sm=M.filter(m=>m.column!=='Locada'),lm=M.filter(m=>m.column==='Locada');
+  const marc=M.filter(m=>isMarcelo(m));
+  const sm=M.filter(m=>m.column!=='Locada'&&!isMarcelo(m)),lm=M.filter(m=>m.column==='Locada'&&!isMarcelo(m));
   document.getElementById('dC').textContent=M.filter(m=>m.ms==='Com defeito').length;
   document.getElementById('tcS').textContent=sm.length;
   document.getElementById('tcL').textContent=lm.length;
+  document.getElementById('tcM').textContent=marc.length;
   const sf=filt(sm);
   SCOLS.forEach(col=>{const items=sf.filter(m=>m.column===col);document.getElementById('cn-'+col).textContent=items.length;const bd=document.getElementById('bd-'+col);if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}bd.innerHTML=items.map(m=>cardH(m,col==='Em Trânsito')).join('');items.forEach(m=>bindD(bd.querySelector('[data-id="'+m.id+'"]'),m.id))});
   const lf=filt(lm),g=document.getElementById('lGrid');
   if(!lf.length){g.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina locada</div>'}
   else{g.innerHTML=lf.map(locH).join('')}
+  const mf=filt(marc),mg=document.getElementById('mGrid');
+  if(!mf.length){mg.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina nas obras do Marcelo</div>'}
+  else{mg.innerHTML=mf.map(marcH).join('')}
 }
 function cardH(m,showC){
   const cb=showC?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></button>':'';
   return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div class="ctop"><div class="cname">'+esc(m.name||'—')+'</div><div class="cbtns">'+cb+'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span><div class="cgrid"><div class="cf"><label>Cliente Atual</label><span class="'+(m.cc?'':'nil')+'">'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Próximo Cliente</label><span class="'+(m.nc?'':'nil')+'">'+esc(m.nc||'—')+'</span></div><div class="cf"><label>Retorno</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div><div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div></div></div>'}
 function locH(m){
   return '<div class="lcard"><div class="ctop"><div class="cname">'+esc(m.name||'—')+'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div><div class="cgrid"><div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Manutenção</label><span>'+esc(m.ms)+'</span></div><div class="cf"><label>Data Locação</label><span>'+(m.dn?fd(m.dn):'—')+'</span></div><div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div></div><div class="lacts"><button class="abtn ret" onclick="iRet(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Retorno</button><button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Renovar</button><button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar</button></div></div>'}
+function marcH(m){
+  return '<div class="lcard" style="border-left:3px solid var(--gold)"><div class="ctop"><div class="cname">'+esc(m.name||'—')+'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div><div class="cgrid"><div class="cf"><label>Obra / Cliente</label><span>'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div><div class="cf"><label>Data Locação</label><span>'+(m.dn?fd(m.dn):'—')+'</span></div><div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div></div><div class="lacts"><button class="abtn ret" onclick="iRet(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Retorno</button><button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Renovar</button><button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar</button></div></div>'}
 function bindD(el,id){el.addEventListener('dragstart',e=>{dragId=id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'});el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragId=null})}
 SCOLS.forEach(col=>{const bd=document.getElementById('bd-'+col);bd.addEventListener('dragover',e=>{e.preventDefault();bd.classList.add('over')});bd.addEventListener('dragleave',()=>bd.classList.remove('over'));bd.addEventListener('drop',async e=>{e.preventDefault();bd.classList.remove('over');if(!dragId)return;const m=M.find(x=>x.id===dragId);if(!m||m.column===col)return;const old=m.column;m.column=col;render();sL(true);try{await api({action:'update',machine:m});toast('Movida para "'+col+'"');await loadAll()}catch(er){console.error(er);m.column=old;render();toast('Erro ao salvar.','err')}finally{sL(false)}})});
 function showCo(title,msg,btnText,btnColor,iconBg,action){cAction=action;document.getElementById('cT').textContent=title;document.getElementById('cM').textContent=msg;document.getElementById('cOk').textContent=btnText;document.getElementById('cOk').style.background=btnColor;document.getElementById('cIcon').style.background=iconBg;document.getElementById('cBg').classList.add('open')}
