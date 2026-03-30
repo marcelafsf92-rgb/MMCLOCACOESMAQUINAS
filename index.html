@@ -240,7 +240,7 @@ document.getElementById('mX').addEventListener('click',cModal);
 document.getElementById('mC').addEventListener('click',cModal);
 document.getElementById('mS').addEventListener('click',save);
 document.getElementById('cCancel').addEventListener('click',closeCo);
-document.getElementById('cOk').addEventListener('click',()=>{closeCo();if(cAction){cAction();cAction=null}});
+document.getElementById('cOk').addEventListener('click',()=>{const fn=cAction;closeCo();if(fn){fn()}});
 document.getElementById('sI').addEventListener('input',render);
 document.getElementById('fS').addEventListener('change',render);
 document.getElementById('mBg').addEventListener('click',e=>{if(e.target===document.getElementById('mBg'))cModal()});
