@@ -796,16 +796,14 @@ async function saveMachine() {
     if (editingId) {
       data.id = editingId;
       await callApi({ action: 'update', machine: data });
-      const i = machines.findIndex(m => m.id === editingId);
-      if (i !== -1) machines[i] = { ...machines[i], ...data };
       toast('Máquina atualizada!');
     } else {
-      const res = await callApi({ action: 'add', machine: data });
-      const newId = res?.id ?? uid();
-      machines.push({ id: newId, ...data });
+      data.id = uid();
+      await callApi({ action: 'add', machine: data });
       toast('Máquina adicionada!');
     }
-    render();
+    // Recarregar tudo do Sheets para garantir sincronização
+    await loadAll();
   } catch {
     toast('Erro ao salvar. Tente novamente.', 'err');
   } finally {
@@ -831,9 +829,8 @@ async function doDelete() {
   setLoading(true);
   try {
     await callApi({ action: 'delete', id });
-    machines = machines.filter(m => m.id !== id);
-    render();
     toast('Máquina removida.');
+    await loadAll();
   } catch {
     toast('Erro ao remover. Tente novamente.', 'err');
   } finally {
