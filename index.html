@@ -535,30 +535,18 @@ let editingId   = null;
 let deleteId    = null;
 
 /* ── API ─────────────────────────────────────────────────── */
-function callApi(body) {
-  // Apps Script retorna 302 redirect que causa problemas com fetch.
-  // Solução comprovada: usar GET com payload na URL via tag <script> dinâmica
-  // não funciona para JSON, então usamos iframe + form para POST.
-  // A solução mais simples e confiável: GET com callback via query string.
-  return new Promise((resolve, reject) => {
-    const payload = encodeURIComponent(JSON.stringify(body));
-    const url = API + '?payload=' + payload + '&cb=' + Date.now();
-    
-    // Usar XMLHttpRequest que lida melhor com redirects do Apps Script
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.onload = function() {
-      try {
-        resolve(JSON.parse(xhr.responseText));
-      } catch {
-        resolve({ ok: false, raw: xhr.responseText });
-      }
-    };
-    xhr.onerror = function() {
-      reject(new Error('Network error'));
-    };
-    xhr.send();
-  });
+async function callApi(body) {
+  const payload = encodeURIComponent(JSON.stringify(body));
+  const url = API + '?payload=' + payload + '&_=' + Date.now();
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const txt = await res.text();
+    return JSON.parse(txt);
+  } catch(err) {
+    console.error('callApi error:', err, 'url:', url);
+    throw err;
+  }
 }
 
 /* ── HELPERS ─────────────────────────────────────────────── */
