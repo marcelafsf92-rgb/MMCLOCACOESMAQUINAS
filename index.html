@@ -536,11 +536,11 @@ let deleteId    = null;
 
 /* ── API ─────────────────────────────────────────────────── */
 async function callApi(body) {
-  const res = await fetch(API, {
-    method : 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body   : JSON.stringify(body)
-  });
+  // Google Apps Script redireciona POST (302) e o browser perde o body.
+  // Solução: encode tudo na query string e usar GET.
+  const payload = encodeURIComponent(JSON.stringify(body));
+  const url = API + '?payload=' + payload;
+  const res = await fetch(url, { redirect: 'follow' });
   const txt = await res.text();
   try { return JSON.parse(txt); } catch { return { ok: false }; }
 }
