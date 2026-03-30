@@ -143,7 +143,7 @@
 <div class="tcont active" id="tab-status"><div class="bwrap"><div class="board">
   <div class="col col-ret"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Retornando</span></div><span class="ccnt" id="cn-Retornando">0</span></div><div class="cbody" id="bd-Retornando"></div></div>
   <div class="col col-dis"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Disponível</span></div><span class="ccnt" id="cn-Disponível">0</span></div><div class="cbody" id="bd-Disponível"></div></div>
-  <div class="col col-tra"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Em Trânsito</span></div><span class="ccnt" id="cn-Em Trânsito">0</span></div><div class="cbody" id="bd-Em Trânsito"></div></div>
+  <div class="col col-tra"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Reservado</span></div><span class="ccnt" id="cn-Reservado">0</span></div><div class="cbody" id="bd-Reservado"></div></div>
 </div></div></div>
 
 <div class="tcont" id="tab-locadas"><div class="bwrap"><div class="lgrid" id="lGrid"></div></div></div>
@@ -155,7 +155,7 @@
   <div class="fg"><label>Nome da Máquina *</label><input id="fN" type="text" placeholder="Ex: Plataforma Tesoura 8m"></div>
   <div class="frow"><div class="fg"><label>Cliente Atual</label><input id="fCC" type="text" placeholder="Nome do cliente"></div><div class="fg"><label>Próximo Cliente</label><input id="fNC" type="text" placeholder="Próximo cliente"></div></div>
   <div class="frow"><div class="fg"><label>Data de Retorno</label><input id="fDR" type="date"></div><div class="fg"><label>Data Próxima Locação</label><input id="fDN" type="date"></div></div>
-  <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok">Ok</option><option value="Em revisão">Em revisão</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Disponível">Disponível</option><option value="Em Trânsito">Em Trânsito</option><option value="Locada">Locada</option></select></div></div>
+  <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok">Ok</option><option value="Em revisão">Em revisão</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Disponível">Disponível</option><option value="Reservado">Reservado</option><option value="Locada">Locada</option></select></div></div>
 </div>
 <div class="mft"><button class="btnc" id="mC">Cancelar</button><button class="btns" id="mS">Salvar</button></div></div></div>
 
@@ -176,9 +176,9 @@
 
 <script>
 const API='https://script.google.com/macros/s/AKfycbzUBhDAvIwVzRWpCZyI_2zRDKvB0VCs0gdosIen6l0_2vqaCUOgjsr97CVoU5ilflLWAg/exec';
-const SCOLS=['Retornando','Disponível','Em Trânsito'];
+const SCOLS=['Retornando','Disponível','Reservado'];
 let M=[],dragId=null,editId=null,cAction=null,rId=null,curTab='status';
-const S2E={retornando:'Retornando',disponivel:'Disponível',em_transito:'Em Trânsito',locada:'Locada'};
+const S2E={retornando:'Retornando',disponivel:'Disponível',reservado:'Reservado',locada:'Locada'};
 const E2S={};Object.entries(S2E).forEach(([k,v])=>E2S[v]=k);
 const M2E={ok:'Ok',em_revisao:'Em revisão',com_defeito:'Com defeito'};
 const E2M={};Object.entries(M2E).forEach(([k,v])=>E2M[v]=k);
@@ -203,7 +203,7 @@ function render(){
   document.getElementById('tcL').textContent=lm.length;
   document.getElementById('tcM').textContent=marc.length;
   const sf=filt(sm);
-  SCOLS.forEach(col=>{const items=sf.filter(m=>m.column===col);document.getElementById('cn-'+col).textContent=items.length;const bd=document.getElementById('bd-'+col);if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}bd.innerHTML=items.map(m=>cardH(m,col==='Em Trânsito')).join('');items.forEach(m=>bindD(bd.querySelector('[data-id="'+m.id+'"]'),m.id))});
+  SCOLS.forEach(col=>{const items=sf.filter(m=>m.column===col);document.getElementById('cn-'+col).textContent=items.length;const bd=document.getElementById('bd-'+col);if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}bd.innerHTML=items.map(m=>cardH(m,col==='Reservado')).join('');items.forEach(m=>bindD(bd.querySelector('[data-id="'+m.id+'"]'),m.id))});
   const lf=filt(lm),g=document.getElementById('lGrid');
   if(!lf.length){g.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina locada</div>'}
   else{g.innerHTML=lf.map(locH).join('')}
