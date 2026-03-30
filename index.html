@@ -3,894 +3,238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MMC Locações — Painel Kanban</title>
+  <title>MMC Locações — Painel de Máquinas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --navy:        #1E3A8A;
-      --navy-hover:  #2348a8;
-      --navy-dark:   #152d6e;
-      --gold:        #F5A623;
-      --gold-hover:  #f7b844;
-      --gold-dark:   #d4891b;
-      --bg:          #eef2fb;
-      --surface:     #ffffff;
-      --border:      #dde4f0;
-      --text:        #1a202c;
-      --muted:       #6b7280;
-      --shadow-sm:   0 1px 4px rgba(30,58,138,.08);
-      --shadow-md:   0 4px 16px rgba(30,58,138,.12);
-      --shadow-lg:   0 12px 40px rgba(30,58,138,.20);
-      --radius:      12px;
-    }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    /* ── LOADING BAR ─────────────────────────────────────── */
-    #loadingBar {
-      position: fixed; top: 0; left: 0; width: 100%; height: 3px;
-      background: var(--gold); z-index: 9999;
-      transform: scaleX(0); transform-origin: left;
-      transition: transform .35s ease; pointer-events: none;
-    }
-    #loadingBar.on  { transform: scaleX(.75); }
-    #loadingBar.done{ transform: scaleX(1); transition: transform .1s; }
-
-    /* ── TOAST ───────────────────────────────────────────── */
-    #toast {
-      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-      padding: 12px 20px; border-radius: 10px;
-      font-size: 14px; font-weight: 500; max-width: 320px;
-      box-shadow: var(--shadow-lg);
-      transform: translateY(80px); opacity: 0;
-      transition: all .28s cubic-bezier(.34,1.56,.64,1);
-      pointer-events: none;
-    }
-    #toast.show { transform: translateY(0); opacity: 1; }
-    #toast.ok  { background:#d1fae5; color:#065f46; border-left:4px solid #10b981; }
-    #toast.err { background:#fee2e2; color:#991b1b; border-left:4px solid #ef4444; }
-
-    /* ── SPINNER ─────────────────────────────────────────── */
-    #spinner {
-      position: fixed; inset: 0; display: flex;
-      align-items: center; justify-content: center;
-      background: rgba(30,58,138,.10); z-index: 9998;
-      opacity: 0; pointer-events: none; transition: opacity .2s;
-    }
-    #spinner.on { opacity: 1; pointer-events: all; }
-    .spin-ring {
-      width: 44px; height: 44px; border-radius: 50%;
-      border: 4px solid rgba(30,58,138,.18);
-      border-top-color: var(--navy);
-      animation: spin .7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── HEADER ──────────────────────────────────────────── */
-    .hdr {
-      background: var(--navy);
-      height: 68px; padding: 0 28px;
-      display: flex; align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,.22);
-      position: sticky; top: 0; z-index: 200;
-    }
-    .hdr-in {
-      width: 100%; max-width: 1440px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    }
-    .hdr-brand { display: flex; align-items: center; gap: 14px; }
-    .logo-badge {
-      width: 44px; height: 44px; border-radius: 10px;
-      background: var(--gold); flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 800; font-size: 19px; color: var(--navy); letter-spacing: 1px;
-    }
-    .brand-texts { display: flex; flex-direction: column; }
-    .brand-name {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 22px; color: #fff; letter-spacing: .4px; line-height: 1.1;
-    }
-    .brand-sub { font-size: 11.5px; color: rgba(255,255,255,.55); font-weight: 400; }
-
-    .btn-add {
-      display: flex; align-items: center; gap: 7px;
-      background: var(--gold); color: var(--navy);
-      border: none; border-radius: 9px;
-      padding: 10px 20px; cursor: pointer;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 15px; letter-spacing: .5px;
-      transition: background .18s, transform .1s;
-    }
-    .btn-add:hover  { background: var(--gold-hover); }
-    .btn-add:active { transform: scale(.97); }
-    .btn-add svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-    /* ── TOOLBAR ─────────────────────────────────────────── */
-    .toolbar {
-      background: var(--surface); border-bottom: 1px solid var(--border);
-      padding: 11px 28px;
-    }
-    .toolbar-in {
-      max-width: 1440px; margin: 0 auto;
-      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    }
-    .search-wrap { position: relative; flex: 1; min-width: 180px; max-width: 340px; }
-    .search-wrap .ico {
-      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
-      width: 15px; height: 15px; color: var(--muted); pointer-events: none;
-    }
-    .search-input {
-      width: 100%; padding: 8px 12px 8px 36px;
-      border: 1.5px solid var(--border); border-radius: 8px;
-      font-size: 13.5px; font-family: 'DM Sans', sans-serif;
-      background: var(--bg); color: var(--text); outline: none;
-      transition: border-color .18s;
-    }
-    .search-input:focus { border-color: var(--navy); }
-    .sel {
-      padding: 8px 13px; border: 1.5px solid var(--border); border-radius: 8px;
-      font-size: 13.5px; font-family: 'DM Sans', sans-serif;
-      background: var(--bg); color: var(--text);
-      cursor: pointer; outline: none; transition: border-color .18s;
-    }
-    .sel:focus { border-color: var(--navy); }
-    .badge-defect {
-      margin-left: auto; display: flex; align-items: center; gap: 6px;
-      padding: 5px 12px; border-radius: 20px;
-      background: #fee2e2; color: #991b1b;
-      font-size: 13px; font-weight: 500;
-    }
-    .badge-defect .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; flex-shrink: 0; }
-
-    /* ── BOARD ───────────────────────────────────────────── */
-    .board-wrap { padding: 24px 28px; max-width: 1440px; margin: 0 auto; }
-    .board { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; align-items: start; }
-
-    /* ── COLUMN ──────────────────────────────────────────── */
-    .col {
-      background: var(--surface); border-radius: var(--radius);
-      box-shadow: var(--shadow-sm); display: flex; flex-direction: column;
-    }
-    .col-head {
-      padding: 15px 18px 13px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .col-head-left { display: flex; align-items: center; gap: 9px; }
-    .col-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
-    .col-retornando .col-dot { background: #f59e0b; }
-    .col-disponivel .col-dot { background: #10b981; }
-    .col-locada     .col-dot { background: #3b82f6; }
-    .col-title {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 16px; letter-spacing: .6px;
-      text-transform: uppercase; color: var(--navy);
-    }
-    .col-cnt {
-      background: var(--navy); color: #fff;
-      border-radius: 20px; padding: 2px 9px; font-size: 12px; font-weight: 600;
-    }
-    .col-body {
-      padding: 12px 10px; display: flex; flex-direction: column; gap: 10px;
-      min-height: 80px; border-radius: 0 0 var(--radius) var(--radius);
-      transition: background .18s;
-    }
-    .col-body.over { background: rgba(30,58,138,.045); }
-    .col-empty {
-      text-align: center; padding: 22px 12px;
-      color: var(--muted); font-size: 13px;
-    }
-
-    /* ── CARD ────────────────────────────────────────────── */
-    .card {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 10px; padding: 13px;
-      cursor: grab; transition: box-shadow .18s, border-color .18s, transform .12s;
-      user-select: none;
-    }
-    .card:hover { box-shadow: var(--shadow-md); border-color: var(--navy); }
-    .card.dragging { opacity: .45; cursor: grabbing; transform: scale(1.03); }
-    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-    .card-name {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 17px; color: var(--navy); line-height: 1.2; flex: 1;
-    }
-    .card-btns { display: flex; gap: 4px; flex-shrink: 0; }
-    .cbtn {
-      width: 28px; height: 28px; border: none; border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: background .15s;
-    }
-    .cbtn svg { width: 13px; height: 13px; }
-    .cbtn-edit   { background: #eff6ff; color: var(--navy); }
-    .cbtn-edit:hover   { background: #dbeafe; }
-    .cbtn-del    { background: #fff1f2; color: #e11d48; }
-    .cbtn-del:hover    { background: #ffe4e6; }
-
-    /* maintenance badge */
-    .mbadge {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 9px; border-radius: 20px;
-      font-size: 11px; font-weight: 600; margin-bottom: 9px;
-    }
-    .mbadge::before { content:''; width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .mb-ok      { background:#d1fae5; color:#065f46; }
-    .mb-ok::before      { background:#10b981; }
-    .mb-rev     { background:#fef3c7; color:#92400e; }
-    .mb-rev::before     { background:#f59e0b; }
-    .mb-def     { background:#fee2e2; color:#991b1b; }
-    .mb-def::before     { background:#ef4444; }
-
-    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
-    .cfield label {
-      font-size: 10px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: .5px; color: var(--muted); display: block; margin-bottom: 1px;
-    }
-    .cfield span { font-size: 13px; color: var(--text); font-weight: 500; }
-    .cfield span.nil { color: var(--muted); font-style: italic; }
-
-    /* ── MODAL ───────────────────────────────────────────── */
-    .modal-bg {
-      position: fixed; inset: 0; z-index: 1000;
-      background: rgba(15,23,42,.55); backdrop-filter: blur(3px);
-      display: flex; align-items: center; justify-content: center; padding: 20px;
-      opacity: 0; pointer-events: none; transition: opacity .2s;
-    }
-    .modal-bg.open { opacity: 1; pointer-events: all; }
-    .modal {
-      background: #fff; border-radius: 16px;
-      width: 100%; max-width: 530px;
-      box-shadow: 0 28px 90px rgba(0,0,0,.28);
-      transform: scale(.95) translateY(10px);
-      transition: transform .22s cubic-bezier(.34,1.56,.64,1);
-    }
-    .modal-bg.open .modal { transform: scale(1) translateY(0); }
-    .modal-hd {
-      padding: 20px 24px 0;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .modal-title {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 22px; color: var(--navy);
-    }
-    .modal-x {
-      width: 32px; height: 32px; border: none; background: var(--bg);
-      border-radius: 8px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted); transition: background .15s;
-    }
-    .modal-x:hover { background: #e2e8f0; }
-    .modal-x svg { width: 15px; height: 15px; }
-    .modal-bd { padding: 18px 24px; display: grid; gap: 14px; }
-    .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .fg { display: flex; flex-direction: column; gap: 5px; }
-    .fg label {
-      font-size: 11.5px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: .5px; color: var(--muted);
-    }
-    .fg input, .fg select {
-      padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
-      font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text);
-      background: #fff; outline: none; transition: border-color .18s, box-shadow .18s;
-    }
-    .fg input:focus, .fg select:focus {
-      border-color: var(--navy); box-shadow: 0 0 0 3px rgba(30,58,138,.10);
-    }
-    .modal-ft {
-      padding: 0 24px 20px; display: flex; gap: 10px; justify-content: flex-end;
-    }
-    .btn-cancel {
-      padding: 10px 18px; background: var(--bg);
-      color: var(--muted); border: 1.5px solid var(--border);
-      border-radius: 8px; font-family: 'DM Sans', sans-serif;
-      font-size: 14px; cursor: pointer; transition: background .15s;
-    }
-    .btn-cancel:hover { background: #e2e8f0; }
-    .btn-save {
-      padding: 10px 22px; background: var(--navy); color: #fff;
-      border: none; border-radius: 8px;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 16px; letter-spacing: .5px;
-      cursor: pointer; transition: background .15s;
-    }
-    .btn-save:hover { background: var(--navy-hover); }
-
-    /* ── CONFIRM DIALOG ──────────────────────────────────── */
-    .confirm-bg {
-      position: fixed; inset: 0; z-index: 2000;
-      background: rgba(15,23,42,.55); backdrop-filter: blur(3px);
-      display: flex; align-items: center; justify-content: center; padding: 20px;
-      opacity: 0; pointer-events: none; transition: opacity .2s;
-    }
-    .confirm-bg.open { opacity: 1; pointer-events: all; }
-    .confirm-box {
-      background: #fff; border-radius: 14px; padding: 24px;
-      max-width: 360px; width: 100%;
-      box-shadow: 0 28px 90px rgba(0,0,0,.28);
-      transform: scale(.95); transition: transform .22s cubic-bezier(.34,1.56,.64,1);
-    }
-    .confirm-bg.open .confirm-box { transform: scale(1); }
-    .confirm-icon {
-      width: 48px; height: 48px; border-radius: 50%; background: #fee2e2;
-      display: flex; align-items: center; justify-content: center;
-      color: #ef4444; margin-bottom: 14px;
-    }
-    .confirm-icon svg { width: 24px; height: 24px; }
-    .confirm-title {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 20px; margin-bottom: 6px;
-    }
-    .confirm-msg { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
-    .confirm-acts { display: flex; gap: 10px; justify-content: flex-end; }
-    .btn-del-confirm {
-      padding: 10px 20px; background: #ef4444; color: #fff;
-      border: none; border-radius: 8px;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700; font-size: 15px;
-      cursor: pointer; transition: background .15s;
-    }
-    .btn-del-confirm:hover { background: #dc2626; }
-
-    /* ── RESPONSIVE ──────────────────────────────────────── */
-    @media (max-width: 960px) { .board { grid-template-columns: 1fr; } }
-    @media (max-width: 640px) {
-      .hdr { padding: 0 14px; }
-      .toolbar { padding: 10px 14px; }
-      .board-wrap { padding: 14px; }
-      .brand-sub { display: none; }
-      .badge-defect { display: none; }
-    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--navy:#1E3A8A;--navy-h:#2348a8;--navy-d:#152d6e;--gold:#F5A623;--gold-h:#f7b844;--bg:#eef2fb;--surface:#fff;--border:#dde4f0;--text:#1a202c;--muted:#6b7280;--sh-s:0 1px 4px rgba(30,58,138,.08);--sh-m:0 4px 16px rgba(30,58,138,.12);--sh-l:0 12px 40px rgba(30,58,138,.20);--r:12px}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    #loadBar{position:fixed;top:0;left:0;width:100%;height:3px;background:var(--gold);z-index:9999;transform:scaleX(0);transform-origin:left;transition:transform .35s;pointer-events:none}
+    #loadBar.on{transform:scaleX(.75)}#loadBar.done{transform:scaleX(1);transition:transform .1s}
+    #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;max-width:320px;box-shadow:var(--sh-l);transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+    #toast.show{transform:translateY(0);opacity:1}
+    #toast.ok{background:#d1fae5;color:#065f46;border-left:4px solid #10b981}
+    #toast.err{background:#fee2e2;color:#991b1b;border-left:4px solid #ef4444}
+    #spin{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(30,58,138,.1);z-index:9998;opacity:0;pointer-events:none;transition:opacity .2s}
+    #spin.on{opacity:1;pointer-events:all}
+    .sring{width:44px;height:44px;border-radius:50%;border:4px solid rgba(30,58,138,.18);border-top-color:var(--navy);animation:sp .7s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .hdr{background:var(--navy);height:68px;padding:0 28px;display:flex;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,.22);position:sticky;top:0;z-index:200}
+    .hdr-in{width:100%;max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .hdr-brand{display:flex;align-items:center;gap:14px}
+    .logo-b{width:44px;height:44px;border-radius:10px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px;color:var(--navy);letter-spacing:1px}
+    .br-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;color:#fff;letter-spacing:.4px;line-height:1.1}
+    .br-sub{font-size:11.5px;color:rgba(255,255,255,.55)}
+    .btn-add{display:flex;align-items:center;gap:7px;background:var(--gold);color:var(--navy);border:none;border-radius:9px;padding:10px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.5px;transition:background .18s,transform .1s}
+    .btn-add:hover{background:var(--gold-h)}.btn-add:active{transform:scale(.97)}
+    .btn-add svg{width:16px;height:16px}
+    .tabs{background:var(--surface);border-bottom:2px solid var(--border);padding:0 28px}
+    .tabs-in{max-width:1440px;margin:0 auto;display:flex}
+    .tbtn{padding:14px 24px;border:none;background:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .18s}
+    .tbtn:hover{color:var(--navy)}.tbtn.active{color:var(--navy);border-bottom-color:var(--gold)}
+    .tbtn .tc{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:12px;background:var(--navy);color:#fff;font-size:11px;font-weight:600;margin-left:8px}
+    .tbar{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 28px}
+    .tbar-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .swrap{position:relative;flex:1;min-width:180px;max-width:340px}
+    .swrap .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted);pointer-events:none}
+    .sinput{width:100%;padding:8px 12px 8px 36px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none}
+    .sinput:focus{border-color:var(--navy)}
+    .sel{padding:8px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;font-family:'DM Sans',sans-serif;background:var(--bg);cursor:pointer;outline:none}
+    .bdef{margin-left:auto;display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:500}
+    .bdef .dot{width:8px;height:8px;border-radius:50%;background:#ef4444}
+    .bwrap{padding:24px 28px;max-width:1440px;margin:0 auto}
+    .board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+    .tcont{display:none}.tcont.active{display:block}
+    .col{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-s);display:flex;flex-direction:column}
+    .ch{padding:15px 18px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .chl{display:flex;align-items:center;gap:9px}
+    .cdot{width:11px;height:11px;border-radius:50%}
+    .col-ret .cdot{background:#f59e0b}.col-dis .cdot{background:#10b981}.col-tra .cdot{background:#3b82f6}
+    .ctitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:.6px;text-transform:uppercase;color:var(--navy)}
+    .ccnt{background:var(--navy);color:#fff;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:600}
+    .cbody{padding:12px 10px;display:flex;flex-direction:column;gap:10px;min-height:80px;border-radius:0 0 var(--r) var(--r);transition:background .18s}
+    .cbody.over{background:rgba(30,58,138,.045)}
+    .cempty{text-align:center;padding:22px 12px;color:var(--muted);font-size:13px}
+    .card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:13px;cursor:grab;transition:box-shadow .18s,border-color .18s,transform .12s;user-select:none}
+    .card:hover{box-shadow:var(--sh-m);border-color:var(--navy)}
+    .card.dragging{opacity:.45;cursor:grabbing;transform:scale(1.03)}
+    .ctop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .cname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--navy);line-height:1.2;flex:1}
+    .cbtns{display:flex;gap:4px}
+    .cb{width:28px;height:28px;border:none;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+    .cb svg{width:13px;height:13px}
+    .cb-e{background:#eff6ff;color:var(--navy)}.cb-e:hover{background:#dbeafe}
+    .cb-d{background:#fff1f2;color:#e11d48}.cb-d:hover{background:#ffe4e6}
+    .cb-c{background:#d1fae5;color:#065f46}.cb-c:hover{background:#bbf7d0}
+    .mb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:9px}
+    .mb::before{content:'';width:7px;height:7px;border-radius:50%}
+    .mb-ok{background:#d1fae5;color:#065f46}.mb-ok::before{background:#10b981}
+    .mb-rv{background:#fef3c7;color:#92400e}.mb-rv::before{background:#f59e0b}
+    .mb-df{background:#fee2e2;color:#991b1b}.mb-df::before{background:#ef4444}
+    .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+    .cf label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:1px}
+    .cf span{font-size:13px;color:var(--text);font-weight:500}
+    .cf span.nil{color:var(--muted);font-style:italic}
+    .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+    .lcard{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:16px;transition:box-shadow .18s}
+    .lcard:hover{box-shadow:var(--sh-m)}
+    .lacts{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .abtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;background:#fff}
+    .abtn svg{width:14px;height:14px}
+    .abtn.ret{color:#f59e0b;border-color:#fef3c7;background:#fffbeb}.abtn.ret:hover{background:#fef3c7;border-color:#f59e0b}
+    .abtn.ren{color:#3b82f6;border-color:#dbeafe;background:#eff6ff}.abtn.ren:hover{background:#dbeafe;border-color:#3b82f6}
+    .abtn.edt{color:var(--navy);border-color:#dde4f0;background:#f8fafc}.abtn.edt:hover{background:#e2e8f0;border-color:var(--navy)}
+    .mbg{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+    .mbg.open{opacity:1;pointer-events:all}
+    .modal{background:#fff;border-radius:16px;width:100%;max-width:530px;box-shadow:0 28px 90px rgba(0,0,0,.28);transform:scale(.95) translateY(10px);transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
+    .mbg.open .modal{transform:scale(1) translateY(0)}
+    .mhd{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between}
+    .mtitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;color:var(--navy)}
+    .mx{width:32px;height:32px;border:none;background:var(--bg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:background .15s}
+    .mx:hover{background:#e2e8f0}.mx svg{width:15px;height:15px}
+    .mbd{padding:18px 24px;display:grid;gap:14px}
+    .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .fg{display:flex;flex-direction:column;gap:5px}
+    .fg label{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+    .fg input,.fg select{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;transition:border-color .18s}
+    .fg input:focus,.fg select:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(30,58,138,.10)}
+    .mft{padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end}
+    .btnc{padding:10px 18px;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
+    .btnc:hover{background:#e2e8f0}
+    .btns{padding:10px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:.5px;cursor:pointer}
+    .btns:hover{background:var(--navy-h)}
+    .cobg{position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+    .cobg.open{opacity:1;pointer-events:all}
+    .cobox{background:#fff;border-radius:14px;padding:24px;max-width:360px;width:100%;box-shadow:0 28px 90px rgba(0,0,0,.28);transform:scale(.95);transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
+    .cobg.open .cobox{transform:scale(1)}
+    .coicon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+    .coicon svg{width:24px;height:24px}
+    .cotitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;margin-bottom:6px}
+    .comsg{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:20px}
+    .coacts{display:flex;gap:10px;justify-content:flex-end}
+    .cobtn{padding:10px 20px;color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;cursor:pointer}
+    @media(max-width:960px){.board{grid-template-columns:1fr}.lgrid{grid-template-columns:1fr}}
+    @media(max-width:640px){.hdr{padding:0 14px}.tbar{padding:10px 14px}.bwrap{padding:14px}.br-sub{display:none}.bdef{display:none}.tabs{padding:0 14px}}
   </style>
 </head>
 <body>
-
-<!-- Loading bar -->
-<div id="loadingBar"></div>
-
-<!-- Spinner -->
-<div id="spinner"><div class="spin-ring"></div></div>
-
-<!-- Toast -->
+<div id="loadBar"></div>
+<div id="spin"><div class="sring"></div></div>
 <div id="toast"></div>
 
-<!-- ══ HEADER ══════════════════════════════════════════════ -->
-<header class="hdr">
-  <div class="hdr-in">
-    <div class="hdr-brand">
-      <div class="logo-badge">MMC</div>
-      <div class="brand-texts">
-        <span class="brand-name">MMC Locações</span>
-        <span class="brand-sub">Controle de Plataformas Elevatórias</span>
-      </div>
-    </div>
-    <button class="btn-add" id="btnAdd">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      Nova Máquina
-    </button>
-  </div>
-</header>
+<header class="hdr"><div class="hdr-in">
+  <div class="hdr-brand"><div class="logo-b">MMC</div><div><span class="br-name">MMC Locações</span><span class="br-sub">Controle de Plataformas Elevatórias</span></div></div>
+  <button class="btn-add" id="btnAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Máquina</button>
+</div></header>
 
-<!-- ══ TOOLBAR ═════════════════════════════════════════════ -->
-<div class="toolbar">
-  <div class="toolbar-in">
-    <div class="search-wrap">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input class="search-input" id="searchInput" type="text" placeholder="Buscar por nome ou cliente…">
-    </div>
-    <select class="sel" id="filterSel">
-      <option value="">Todas as manutenções</option>
-      <option value="Ok">Ok</option>
-      <option value="Em revisão">Em revisão</option>
-      <option value="Com defeito">Com defeito</option>
-    </select>
-    <div class="badge-defect">
-      <span class="dot"></span>
-      <span id="defectCount">0</span>&nbsp;com defeito
-    </div>
-  </div>
+<div class="tabs"><div class="tabs-in">
+  <button class="tbtn active" data-tab="status" onclick="switchTab('status')">Status <span class="tc" id="tcS">0</span></button>
+  <button class="tbtn" data-tab="locadas" onclick="switchTab('locadas')">Locadas <span class="tc" id="tcL">0</span></button>
+</div></div>
+
+<div class="tbar"><div class="tbar-in">
+  <div class="swrap"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="sinput" id="sI" type="text" placeholder="Buscar por nome ou cliente…"></div>
+  <select class="sel" id="fS"><option value="">Todas as manutenções</option><option value="Ok">Ok</option><option value="Em revisão">Em revisão</option><option value="Com defeito">Com defeito</option></select>
+  <div class="bdef"><span class="dot"></span><span id="dC">0</span>&nbsp;com defeito</div>
+</div></div>
+
+<div class="tcont active" id="tab-status"><div class="bwrap"><div class="board">
+  <div class="col col-ret"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Retornando</span></div><span class="ccnt" id="cn-Retornando">0</span></div><div class="cbody" id="bd-Retornando"></div></div>
+  <div class="col col-dis"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Disponível</span></div><span class="ccnt" id="cn-Disponível">0</span></div><div class="cbody" id="bd-Disponível"></div></div>
+  <div class="col col-tra"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Em Trânsito</span></div><span class="ccnt" id="cn-Em Trânsito">0</span></div><div class="cbody" id="bd-Em Trânsito"></div></div>
+</div></div></div>
+
+<div class="tcont" id="tab-locadas"><div class="bwrap"><div class="lgrid" id="lGrid"></div></div></div>
+
+<div class="mbg" id="mBg"><div class="modal"><div class="mhd"><span class="mtitle" id="mT">Nova Máquina</span><button class="mx" id="mX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+<div class="mbd">
+  <div class="fg"><label>Nome da Máquina *</label><input id="fN" type="text" placeholder="Ex: Plataforma Tesoura 8m"></div>
+  <div class="frow"><div class="fg"><label>Cliente Atual</label><input id="fCC" type="text" placeholder="Nome do cliente"></div><div class="fg"><label>Próximo Cliente</label><input id="fNC" type="text" placeholder="Próximo cliente"></div></div>
+  <div class="frow"><div class="fg"><label>Data de Retorno</label><input id="fDR" type="date"></div><div class="fg"><label>Data Próxima Locação</label><input id="fDN" type="date"></div></div>
+  <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok">Ok</option><option value="Em revisão">Em revisão</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Disponível">Disponível</option><option value="Em Trânsito">Em Trânsito</option><option value="Locada">Locada</option></select></div></div>
 </div>
+<div class="mft"><button class="btnc" id="mC">Cancelar</button><button class="btns" id="mS">Salvar</button></div></div></div>
 
-<!-- ══ BOARD ════════════════════════════════════════════════ -->
-<div class="board-wrap">
-  <div class="board">
-
-    <div class="col col-retornando" id="col-Retornando">
-      <div class="col-head">
-        <div class="col-head-left">
-          <div class="col-dot"></div>
-          <span class="col-title">Retornando</span>
-        </div>
-        <span class="col-cnt" id="cnt-Retornando">0</span>
-      </div>
-      <div class="col-body" id="body-Retornando" data-col="Retornando"></div>
-    </div>
-
-    <div class="col col-disponivel" id="col-Disponível">
-      <div class="col-head">
-        <div class="col-head-left">
-          <div class="col-dot"></div>
-          <span class="col-title">Disponível</span>
-        </div>
-        <span class="col-cnt" id="cnt-Disponível">0</span>
-      </div>
-      <div class="col-body" id="body-Disponível" data-col="Disponível"></div>
-    </div>
-
-    <div class="col col-locada" id="col-Locada">
-      <div class="col-head">
-        <div class="col-head-left">
-          <div class="col-dot"></div>
-          <span class="col-title">Locada</span>
-        </div>
-        <span class="col-cnt" id="cnt-Locada">0</span>
-      </div>
-      <div class="col-body" id="body-Locada" data-col="Locada"></div>
-    </div>
-
-  </div>
+<div class="mbg" id="rBg"><div class="modal"><div class="mhd"><span class="mtitle">Renovar Contrato</span><button class="mx" onclick="closeR()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+<div class="mbd">
+  <div class="fg"><label>Máquina</label><input id="rN" type="text" disabled></div>
+  <div class="fg"><label>Cliente</label><input id="rC" type="text" placeholder="Mesmo ou novo cliente"></div>
+  <div class="frow"><div class="fg"><label>Nova Data Início</label><input id="rDS" type="date"></div><div class="fg"><label>Nova Data Fim</label><input id="rDE" type="date"></div></div>
 </div>
+<div class="mft"><button class="btnc" onclick="closeR()">Cancelar</button><button class="btns" onclick="doR()">Renovar</button></div></div></div>
 
-<!-- ══ MODAL ADD / EDIT ═════════════════════════════════════ -->
-<div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <div class="modal-hd">
-      <span class="modal-title" id="modalTitle">Nova Máquina</span>
-      <button class="modal-x" id="modalX">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M18 6 6 18M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-bd">
-      <div class="fg">
-        <label>Nome da Máquina *</label>
-        <input id="fName" type="text" placeholder="Ex: Plataforma Tesoura 8m">
-      </div>
-      <div class="frow">
-        <div class="fg">
-          <label>Cliente Atual</label>
-          <input id="fCurrClient" type="text" placeholder="Nome do cliente">
-        </div>
-        <div class="fg">
-          <label>Próximo Cliente</label>
-          <input id="fNextClient" type="text" placeholder="Próximo cliente">
-        </div>
-      </div>
-      <div class="frow">
-        <div class="fg">
-          <label>Data de Retorno</label>
-          <input id="fReturnDate" type="date">
-        </div>
-        <div class="fg">
-          <label>Data Próxima Locação</label>
-          <input id="fNextRentalDate" type="date">
-        </div>
-      </div>
-      <div class="frow">
-        <div class="fg">
-          <label>Status de Manutenção</label>
-          <select id="fMaintenance">
-            <option value="Ok">Ok</option>
-            <option value="Em revisão">Em revisão</option>
-            <option value="Com defeito">Com defeito</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Coluna</label>
-          <select id="fColumn">
-            <option value="Retornando">Retornando</option>
-            <option value="Disponível">Disponível</option>
-            <option value="Locada">Locada</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="modal-ft">
-      <button class="btn-cancel" id="modalCancel">Cancelar</button>
-      <button class="btn-save"   id="modalSave">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ CONFIRM DIALOG ══════════════════════════════════════ -->
-<div class="confirm-bg" id="confirmBg">
-  <div class="confirm-box">
-    <div class="confirm-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-      </svg>
-    </div>
-    <div class="confirm-title">Remover Máquina</div>
-    <div class="confirm-msg" id="confirmMsg">Tem certeza? Esta ação não pode ser desfeita.</div>
-    <div class="confirm-acts">
-      <button class="btn-cancel"      id="confirmCancel">Cancelar</button>
-      <button class="btn-del-confirm" id="confirmOk">Remover</button>
-    </div>
-  </div>
-</div>
+<div class="cobg" id="cBg"><div class="cobox">
+  <div class="coicon" id="cIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>
+  <div class="cotitle" id="cT">Confirmar</div>
+  <div class="comsg" id="cM">Tem certeza?</div>
+  <div class="coacts"><button class="btnc" id="cCancel">Cancelar</button><button class="cobtn" id="cOk">Confirmar</button></div>
+</div></div>
 
 <script>
-/* ── CONFIG ──────────────────────────────────────────────── */
-const API = 'https://script.google.com/macros/s/AKfycbzUBhDAvIwVzRWpCZyI_2zRDKvB0VCs0gdosIen6l0_2vqaCUOgjsr97CVoU5ilflLWAg/exec';
-const COLS = ['Retornando', 'Disponível', 'Locada'];
-
-/* ── STATE ───────────────────────────────────────────────── */
-let machines    = [];
-let dragId      = null;
-let editingId   = null;
-let deleteId    = null;
-
-/* ── API ─────────────────────────────────────────────────── */
-
-// Mapeamento: Apps Script (PT) → Frontend (EN)
-const STATUS_PT_TO_EN = { retornando: 'Retornando', disponivel: 'Disponível', locada: 'Locada' };
-const STATUS_EN_TO_PT = { 'Retornando': 'retornando', 'Disponível': 'disponivel', 'Locada': 'locada' };
-const MANUT_PT_TO_EN = { ok: 'Ok', em_revisao: 'Em revisão', com_defeito: 'Com defeito' };
-const MANUT_EN_TO_PT = { 'Ok': 'ok', 'Em revisão': 'em_revisao', 'Com defeito': 'com_defeito' };
-
-function fromSheet(m) {
-  return {
-    id: m.id,
-    name: m.maquina || '',
-    column: STATUS_PT_TO_EN[m.status] || 'Disponível',
-    currentClient: m.cliente_atual || '',
-    nextClient: m.proximo_cliente || '',
-    returnDate: m.data_retorno || '',
-    nextRentalDate: m.data_proxima_locacao || '',
-    maintenanceStatus: MANUT_PT_TO_EN[m.manutencao] || 'Ok'
-  };
+const API='https://script.google.com/macros/s/AKfycbzUBhDAvIwVzRWpCZyI_2zRDKvB0VCs0gdosIen6l0_2vqaCUOgjsr97CVoU5ilflLWAg/exec';
+const SCOLS=['Retornando','Disponível','Em Trânsito'];
+let M=[],dragId=null,editId=null,cAction=null,rId=null,curTab='status';
+const S2E={retornando:'Retornando',disponivel:'Disponível',em_transito:'Em Trânsito',locada:'Locada'};
+const E2S={};Object.entries(S2E).forEach(([k,v])=>E2S[v]=k);
+const M2E={ok:'Ok',em_revisao:'Em revisão',com_defeito:'Com defeito'};
+const E2M={};Object.entries(M2E).forEach(([k,v])=>E2M[v]=k);
+function fromS(m){return{id:m.id,name:m.maquina||'',column:S2E[m.status]||'Disponível',cc:m.cliente_atual||'',nc:m.proximo_cliente||'',dr:m.data_retorno||'',dn:m.data_proxima_locacao||'',ms:M2E[m.manutencao]||'Ok'}}
+function toS(m){return{id:m.id,maquina:m.name||'',status:E2S[m.column]||'disponivel',cliente_atual:m.cc||'',proximo_cliente:m.nc||'',data_retorno:m.dr||'',data_proxima_locacao:m.dn||'',manutencao:E2M[m.ms]||'ok'}}
+async function api(body){if(body.machine)body={...body,machine:toS(body.machine)};const u=API+'?payload='+encodeURIComponent(JSON.stringify(body))+'&_='+Date.now();const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);const j=JSON.parse(await r.text());if(j.data&&Array.isArray(j.data))j.data=j.data.map(fromS);return j}
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fd(s){if(!s)return'';const p=s.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function mc(s){return s==='Ok'?'mb-ok':s==='Em revisão'?'mb-rv':'mb-df'}
+let lt=null;
+function sL(on){const b=document.getElementById('loadBar'),s=document.getElementById('spin');if(on){b.className='on';s.className='on'}else{b.className='done';s.className='';clearTimeout(lt);lt=setTimeout(()=>b.className='',400)}}
+function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className='show '+t;setTimeout(()=>e.classList.remove('show'),3400)}
+function switchTab(t){curTab=t;document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('.tcont').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));render()}
+function filt(list){const q=document.getElementById('sI').value.toLowerCase().trim(),m=document.getElementById('fS').value;return list.filter(x=>{const qs=!q||(x.name||'').toLowerCase().includes(q)||(x.cc||'').toLowerCase().includes(q)||(x.nc||'').toLowerCase().includes(q);const ms=!m||x.ms===m;return qs&&ms})}
+function render(){
+  const sm=M.filter(m=>m.column!=='Locada'),lm=M.filter(m=>m.column==='Locada');
+  document.getElementById('dC').textContent=M.filter(m=>m.ms==='Com defeito').length;
+  document.getElementById('tcS').textContent=sm.length;
+  document.getElementById('tcL').textContent=lm.length;
+  const sf=filt(sm);
+  SCOLS.forEach(col=>{const items=sf.filter(m=>m.column===col);document.getElementById('cn-'+col).textContent=items.length;const bd=document.getElementById('bd-'+col);if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}bd.innerHTML=items.map(m=>cardH(m,col==='Em Trânsito')).join('');items.forEach(m=>bindD(bd.querySelector('[data-id="'+m.id+'"]'),m.id))});
+  const lf=filt(lm),g=document.getElementById('lGrid');
+  if(!lf.length){g.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina locada</div>'}
+  else{g.innerHTML=lf.map(locH).join('')}
 }
-
-function toSheet(m) {
-  return {
-    id: m.id,
-    maquina: m.name || '',
-    status: STATUS_EN_TO_PT[m.column] || 'disponivel',
-    cliente_atual: m.currentClient || '',
-    proximo_cliente: m.nextClient || '',
-    data_retorno: m.returnDate || '',
-    data_proxima_locacao: m.nextRentalDate || '',
-    manutencao: MANUT_EN_TO_PT[m.maintenanceStatus] || 'ok'
-  };
-}
-
-async function callApi(body) {
-  // Converter machine para formato do Sheets antes de enviar
-  if (body.machine) {
-    body = { ...body, machine: toSheet(body.machine) };
-  }
-  const payload = encodeURIComponent(JSON.stringify(body));
-  const url = API + '?payload=' + payload + '&_=' + Date.now();
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const txt = await res.text();
-    const json = JSON.parse(txt);
-    // Converter resposta do Sheets para formato do frontend
-    if (json.data && Array.isArray(json.data)) {
-      json.data = json.data.map(fromSheet);
-    }
-    return json;
-  } catch(err) {
-    console.error('callApi error:', err, 'url:', url);
-    throw err;
-  }
-}
-
-/* ── HELPERS ─────────────────────────────────────────────── */
-function esc(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function fmtDate(s) {
-  if (!s) return '';
-  const p = s.split('-');
-  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : s;
-}
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-}
-function mbClass(st) {
-  return st === 'Ok' ? 'mb-ok' : st === 'Em revisão' ? 'mb-rev' : 'mb-def';
-}
-
-/* ── LOADING / TOAST ─────────────────────────────────────── */
-let loadingTimer = null;
-function setLoading(on) {
-  const bar = document.getElementById('loadingBar');
-  const sp  = document.getElementById('spinner');
-  if (on) {
-    bar.className = 'on';
-    sp.className  = 'on';
-  } else {
-    bar.className = 'done';
-    sp.className  = '';
-    clearTimeout(loadingTimer);
-    loadingTimer = setTimeout(() => { bar.className = ''; }, 400);
-  }
-}
-function toast(msg, type = 'ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className   = `show ${type}`;
-  setTimeout(() => t.classList.remove('show'), 3400);
-}
-
-/* ── RENDER ──────────────────────────────────────────────── */
-function filtered() {
-  const q = document.getElementById('searchInput').value.toLowerCase().trim();
-  const m = document.getElementById('filterSel').value;
-  return machines.filter(mc => {
-    const qs = !q ||
-      (mc.name        || '').toLowerCase().includes(q) ||
-      (mc.currentClient || '').toLowerCase().includes(q) ||
-      (mc.nextClient  || '').toLowerCase().includes(q);
-    const ms = !m || mc.maintenanceStatus === m;
-    return qs && ms;
-  });
-}
-
-function render() {
-  const list = filtered();
-  const defects = machines.filter(m => m.maintenanceStatus === 'Com defeito').length;
-  document.getElementById('defectCount').textContent = defects;
-
-  COLS.forEach(col => {
-    const items = list.filter(m => m.column === col);
-    document.getElementById(`cnt-${col}`).textContent = items.length;
-    const body = document.getElementById(`body-${col}`);
-
-    if (!items.length) {
-      body.innerHTML = '<div class="col-empty">Nenhuma máquina</div>';
-      return;
-    }
-    body.innerHTML = items.map(cardHTML).join('');
-    items.forEach(m => bindCard(body.querySelector(`[data-id="${m.id}"]`), m.id));
-  });
-}
-
-function cardHTML(m) {
-  const st = m.maintenanceStatus || 'Ok';
-  return `
-<div class="card" data-id="${esc(m.id)}" draggable="true">
-  <div class="card-top">
-    <div class="card-name">${esc(m.name || '—')}</div>
-    <div class="card-btns">
-      <button class="cbtn cbtn-edit" onclick="openEdit('${esc(m.id)}')" title="Editar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-      </button>
-      <button class="cbtn cbtn-del" onclick="askDelete('${esc(m.id)}')" title="Remover">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-  <span class="mbadge ${mbClass(st)}">${esc(st)}</span>
-  <div class="card-grid">
-    <div class="cfield">
-      <label>Cliente Atual</label>
-      <span class="${m.currentClient ? '' : 'nil'}">${esc(m.currentClient || '—')}</span>
-    </div>
-    <div class="cfield">
-      <label>Próximo Cliente</label>
-      <span class="${m.nextClient ? '' : 'nil'}">${esc(m.nextClient || '—')}</span>
-    </div>
-    <div class="cfield">
-      <label>Retorno</label>
-      <span class="${m.returnDate ? '' : 'nil'}">${m.returnDate ? fmtDate(m.returnDate) : '—'}</span>
-    </div>
-    <div class="cfield">
-      <label>Próx. Locação</label>
-      <span class="${m.nextRentalDate ? '' : 'nil'}">${m.nextRentalDate ? fmtDate(m.nextRentalDate) : '—'}</span>
-    </div>
-  </div>
-</div>`;
-}
-
-/* ── DRAG & DROP ─────────────────────────────────────────── */
-function bindCard(el, id) {
-  el.addEventListener('dragstart', e => {
-    dragId = id;
-    el.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-  });
-  el.addEventListener('dragend', () => {
-    el.classList.remove('dragging');
-    dragId = null;
-  });
-}
-
-COLS.forEach(col => {
-  const body = document.getElementById(`body-${col}`);
-  body.addEventListener('dragover',  e => { e.preventDefault(); body.classList.add('over'); });
-  body.addEventListener('dragleave', ()  => body.classList.remove('over'));
-  body.addEventListener('drop', async e => {
-    e.preventDefault();
-    body.classList.remove('over');
-    if (!dragId) return;
-    const mc = machines.find(m => m.id === dragId);
-    if (!mc || mc.column === col) return;
-    const oldCol = mc.column;
-    mc.column = col;
-    render();
-    setLoading(true);
-    try {
-      console.log('DROP: id=' + mc.id + ' from=' + oldCol + ' to=' + col);
-      console.log('DROP toSheet:', JSON.stringify(toSheet(mc)));
-      await callApi({ action: 'update', machine: mc });
-      toast(`Movida para "${col}"`);
-      await loadAll();
-    } catch(err) {
-      console.error('DROP error:', err);
-      toast('Erro ao salvar. Tente novamente.', 'err');
-      mc.column = oldCol;
-      render();
-    } finally {
-      setLoading(false);
-    }
-  });
-});
-
-/* ── MODAL ───────────────────────────────────────────────── */
-function openModal(title) {
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalBg').classList.add('open');
-  setTimeout(() => document.getElementById('fName').focus(), 50);
-}
-function closeModal() {
-  document.getElementById('modalBg').classList.remove('open');
-  editingId = null;
-}
-
-function openAdd() {
-  editingId = null;
-  ['fName','fCurrClient','fNextClient'].forEach(id => document.getElementById(id).value = '');
-  ['fReturnDate','fNextRentalDate'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('fMaintenance').value = 'Ok';
-  document.getElementById('fColumn').value = 'Disponível';
-  openModal('Nova Máquina');
-}
-
-function openEdit(id) {
-  const mc = machines.find(m => m.id === id);
-  if (!mc) return;
-  editingId = id;
-  document.getElementById('fName').value           = mc.name            || '';
-  document.getElementById('fCurrClient').value     = mc.currentClient   || '';
-  document.getElementById('fNextClient').value     = mc.nextClient      || '';
-  document.getElementById('fReturnDate').value     = mc.returnDate      || '';
-  document.getElementById('fNextRentalDate').value = mc.nextRentalDate  || '';
-  document.getElementById('fMaintenance').value    = mc.maintenanceStatus || 'Ok';
-  document.getElementById('fColumn').value         = mc.column          || 'Disponível';
-  openModal('Editar Máquina');
-}
-
-async function saveMachine() {
-  const name = document.getElementById('fName').value.trim();
-  if (!name) { toast('Informe o nome da máquina.', 'err'); document.getElementById('fName').focus(); return; }
-
-  const data = {
-    name,
-    currentClient     : document.getElementById('fCurrClient').value.trim(),
-    nextClient        : document.getElementById('fNextClient').value.trim(),
-    returnDate        : document.getElementById('fReturnDate').value,
-    nextRentalDate    : document.getElementById('fNextRentalDate').value,
-    maintenanceStatus : document.getElementById('fMaintenance').value,
-    column            : document.getElementById('fColumn').value,
-  };
-
-  closeModal();
-  setLoading(true);
-  try {
-    if (editingId) {
-      data.id = editingId;
-      await callApi({ action: 'update', machine: data });
-      toast('Máquina atualizada!');
-    } else {
-      data.id = uid();
-      await callApi({ action: 'add', machine: data });
-      toast('Máquina adicionada!');
-    }
-    // Recarregar tudo do Sheets para garantir sincronização
-    await loadAll();
-  } catch {
-    toast('Erro ao salvar. Tente novamente.', 'err');
-  } finally {
-    setLoading(false);
-  }
-}
-
-/* ── DELETE ──────────────────────────────────────────────── */
-function askDelete(id) {
-  const mc = machines.find(m => m.id === id);
-  if (!mc) return;
-  deleteId = id;
-  document.getElementById('confirmMsg').textContent =
-    `Tem certeza que deseja remover "${mc.name}"? Esta ação não pode ser desfeita.`;
-  document.getElementById('confirmBg').classList.add('open');
-}
-
-async function doDelete() {
-  if (!deleteId) return;
-  const id = deleteId;
-  deleteId = null;
-  document.getElementById('confirmBg').classList.remove('open');
-  setLoading(true);
-  try {
-    await callApi({ action: 'delete', id });
-    toast('Máquina removida.');
-    await loadAll();
-  } catch {
-    toast('Erro ao remover. Tente novamente.', 'err');
-  } finally {
-    setLoading(false);
-  }
-}
-
-/* ── LOAD ALL ────────────────────────────────────────────── */
-async function loadAll() {
-  setLoading(true);
-  try {
-    const res = await callApi({ action: 'getAll' });
-    machines = Array.isArray(res) ? res
-             : Array.isArray(res?.data) ? res.data
-             : [];
-    render();
-  } catch {
-    toast('Erro ao carregar dados. Verifique a conexão.', 'err');
-  } finally {
-    setLoading(false);
-  }
-}
-
-/* ── EVENTS ──────────────────────────────────────────────── */
-document.getElementById('btnAdd').addEventListener('click', openAdd);
-document.getElementById('modalX').addEventListener('click', closeModal);
-document.getElementById('modalCancel').addEventListener('click', closeModal);
-document.getElementById('modalSave').addEventListener('click', saveMachine);
-document.getElementById('confirmCancel').addEventListener('click', () => {
-  deleteId = null;
-  document.getElementById('confirmBg').classList.remove('open');
-});
-document.getElementById('confirmOk').addEventListener('click', doDelete);
-document.getElementById('searchInput').addEventListener('input', render);
-document.getElementById('filterSel').addEventListener('change', render);
-document.getElementById('modalBg').addEventListener('click', e => {
-  if (e.target === document.getElementById('modalBg')) closeModal();
-});
-document.getElementById('confirmBg').addEventListener('click', e => {
-  if (e.target === document.getElementById('confirmBg')) {
-    deleteId = null;
-    document.getElementById('confirmBg').classList.remove('open');
-  }
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeModal();
-    deleteId = null;
-    document.getElementById('confirmBg').classList.remove('open');
-  }
-});
-
-/* ── INIT ────────────────────────────────────────────────── */
+function cardH(m,showC){
+  const cb=showC?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></button>':'';
+  return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div class="ctop"><div class="cname">'+esc(m.name||'—')+'</div><div class="cbtns">'+cb+'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span><div class="cgrid"><div class="cf"><label>Cliente Atual</label><span class="'+(m.cc?'':'nil')+'">'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Próximo Cliente</label><span class="'+(m.nc?'':'nil')+'">'+esc(m.nc||'—')+'</span></div><div class="cf"><label>Retorno</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div><div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div></div></div>'}
+function locH(m){
+  return '<div class="lcard"><div class="ctop"><div class="cname">'+esc(m.name||'—')+'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div><div class="cgrid"><div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Manutenção</label><span>'+esc(m.ms)+'</span></div><div class="cf"><label>Data Locação</label><span>'+(m.dn?fd(m.dn):'—')+'</span></div><div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div></div><div class="lacts"><button class="abtn ret" onclick="iRet(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Retorno</button><button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Renovar</button><button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar</button></div></div>'}
+function bindD(el,id){el.addEventListener('dragstart',e=>{dragId=id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'});el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragId=null})}
+SCOLS.forEach(col=>{const bd=document.getElementById('bd-'+col);bd.addEventListener('dragover',e=>{e.preventDefault();bd.classList.add('over')});bd.addEventListener('dragleave',()=>bd.classList.remove('over'));bd.addEventListener('drop',async e=>{e.preventDefault();bd.classList.remove('over');if(!dragId)return;const m=M.find(x=>x.id===dragId);if(!m||m.column===col)return;const old=m.column;m.column=col;render();sL(true);try{await api({action:'update',machine:m});toast('Movida para "'+col+'"');await loadAll()}catch(er){console.error(er);m.column=old;render();toast('Erro ao salvar.','err')}finally{sL(false)}})});
+function showCo(title,msg,btnText,btnColor,iconBg,action){cAction=action;document.getElementById('cT').textContent=title;document.getElementById('cM').textContent=msg;document.getElementById('cOk').textContent=btnText;document.getElementById('cOk').style.background=btnColor;document.getElementById('cIcon').style.background=iconBg;document.getElementById('cBg').classList.add('open')}
+function closeCo(){cAction=null;document.getElementById('cBg').classList.remove('open')}
+function cEnt(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Confirmar Entrega','Confirmar que "'+m.name+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{sL(true);try{m.column='Locada';await api({action:'update',machine:m});toast(m.name+' — Entrega confirmada!');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}})}
+function iRet(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Iniciar Retorno','Iniciar retorno de "'+m.name+'"? Voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{sL(true);try{m.column='Retornando';await api({action:'update',machine:m});toast(m.name+' — Retorno iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{sL(false)}})}
+function aDel(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Remover Máquina','Remover "'+m.name+'"? Esta ação não pode ser desfeita.','Remover','#ef4444','#fee2e2',async()=>{sL(true);try{await api({action:'delete',id});toast('Máquina removida.');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}})}
+function oRen(id){const m=M.find(x=>x.id===id);if(!m)return;rId=id;document.getElementById('rN').value=m.name;document.getElementById('rC').value=m.cc||'';document.getElementById('rDS').value='';document.getElementById('rDE').value='';document.getElementById('rBg').classList.add('open')}
+function closeR(){document.getElementById('rBg').classList.remove('open');rId=null}
+async function doR(){const m=M.find(x=>x.id===rId);if(!m)return;const c=document.getElementById('rC').value.trim();if(!c){toast('Informe o cliente.','err');return}m.cc=c;const ds=document.getElementById('rDS').value,de=document.getElementById('rDE').value;if(ds)m.dn=ds;if(de)m.dr=de;closeR();sL(true);try{await api({action:'update',machine:m});toast(m.name+' — Contrato renovado!');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}}
+function oModal(t){document.getElementById('mT').textContent=t;document.getElementById('mBg').classList.add('open');setTimeout(()=>document.getElementById('fN').focus(),50)}
+function cModal(){document.getElementById('mBg').classList.remove('open');editId=null}
+function oAdd(){editId=null;['fN','fCC','fNC'].forEach(i=>document.getElementById(i).value='');['fDR','fDN'].forEach(i=>document.getElementById(i).value='');document.getElementById('fM').value='Ok';document.getElementById('fCol').value='Disponível';oModal('Nova Máquina')}
+function oEdit(id){const m=M.find(x=>x.id===id);if(!m)return;editId=id;document.getElementById('fN').value=m.name||'';document.getElementById('fCC').value=m.cc||'';document.getElementById('fNC').value=m.nc||'';document.getElementById('fDR').value=m.dr||'';document.getElementById('fDN').value=m.dn||'';document.getElementById('fM').value=m.ms||'Ok';document.getElementById('fCol').value=m.column||'Disponível';oModal('Editar Máquina')}
+async function save(){const n=document.getElementById('fN').value.trim();if(!n){toast('Informe o nome.','err');return}const d={name:n,cc:document.getElementById('fCC').value.trim(),nc:document.getElementById('fNC').value.trim(),dr:document.getElementById('fDR').value,dn:document.getElementById('fDN').value,ms:document.getElementById('fM').value,column:document.getElementById('fCol').value};cModal();sL(true);try{if(editId){d.id=editId;await api({action:'update',machine:d});toast('Atualizada!')}else{d.id=uid();await api({action:'add',machine:d});toast('Adicionada!')}await loadAll()}catch{toast('Erro ao salvar.','err')}finally{sL(false)}}
+async function loadAll(){sL(true);try{const r=await api({action:'getAll'});M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];render()}catch{toast('Erro ao carregar.','err')}finally{sL(false)}}
+document.getElementById('btnAdd').addEventListener('click',oAdd);
+document.getElementById('mX').addEventListener('click',cModal);
+document.getElementById('mC').addEventListener('click',cModal);
+document.getElementById('mS').addEventListener('click',save);
+document.getElementById('cCancel').addEventListener('click',closeCo);
+document.getElementById('cOk').addEventListener('click',()=>{closeCo();if(cAction){cAction();cAction=null}});
+document.getElementById('sI').addEventListener('input',render);
+document.getElementById('fS').addEventListener('change',render);
+document.getElementById('mBg').addEventListener('click',e=>{if(e.target===document.getElementById('mBg'))cModal()});
+document.getElementById('rBg').addEventListener('click',e=>{if(e.target===document.getElementById('rBg'))closeR()});
+document.getElementById('cBg').addEventListener('click',e=>{if(e.target===document.getElementById('cBg'))closeCo()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){cModal();closeR();closeCo()}});
 loadAll();
 </script>
 </body>
