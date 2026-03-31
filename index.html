@@ -116,7 +116,13 @@
     .cobtn{padding:10px 20px;color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;cursor:pointer}
     @media(max-width:1100px){.board{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.board{grid-template-columns:1fr}.lgrid{grid-template-columns:1fr}}
     @media(max-width:640px){.hdr{padding:0 14px}.tbar{padding:10px 14px}.bwrap{padding:14px}.br-sub{display:none}.bdef{display:none}.tabs{padding:0 14px}}
-  </style>
+  body:not(.editor-mode) .btn-add{display:none}
+    body:not(.editor-mode) .cb-e,body:not(.editor-mode) .cb-d,body:not(.editor-mode) .cb-c{display:none}
+    body:not(.editor-mode) .lacts{display:none}
+    body:not(.editor-mode) .card{cursor:default}
+    .mode-btn{padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .18s;letter-spacing:.3px}
+    .mode-btn:hover{background:rgba(255,255,255,.25)}
+</style>
 </head>
 <body>
 <div id="loadBar"></div>
@@ -125,7 +131,8 @@
 
 <header class="hdr"><div class="hdr-in">
   <div class="hdr-brand"><img src="logo.jpg" alt="MMC Locações" style="height:58px;mix-blend-mode:screen;margin:-8px 0;object-fit:contain"><div style="display:flex;flex-direction:column;margin-left:16px;line-height:1.15"><span class="br-name">Controle de Plataformas</span><span class="br-sub" style="font-size:12px">Elevatórias</span></div></div>
-  <button class="btn-add" id="btnAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Máquina</button>
+  <button class="mode-btn" id="modeBtn" onclick="if(!isEditor){checkEditor()}else{isEditor=false;sessionStorage.removeItem('mmc_editor');applyMode();toast('Modo visualização')}">Visualização</button>
+    <button class="btn-add" id="btnAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Máquina</button>
 </div></header>
 
 <div class="tabs"><div class="tabs-in">
@@ -233,14 +240,16 @@ function locH(m){
 function marcH(m){
   const mTitle=m.modelo?esc(m.modelo):(esc(m.name||'—'));
   return '<div class="lcard" style="border-left:3px solid var(--gold)"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+(m.marca?marcaBadge(m.marca):'')+'<div style="flex:1"><div class="cname">'+mTitle+'</div>'+(m.serie?'<div style="font-size:11px;color:var(--muted)">Série: '+esc(m.serie)+'</div>':'')+'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'+'<div class="cgrid"><div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div><div class="cf"><label>Data Locação</label><span>'+(m.dn?fd(m.dn):'—')+'</span></div><div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div></div><div class="lacts"><button class="abtn ret" onclick="iRetM(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Retorno</button><button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Renovar</button><button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar</button></div></div>'}
-function bindD(el,id){el.addEventListener('dragstart',e=>{dragId=id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'});el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragId=null})}
+function bindD(el,id){el.addEventListener('dragstart',e=>{if(!isEditor){e.preventDefault();return}dragId=id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'});el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragId=null})}
 let dropping=false;
 SCOLS.forEach(col=>{const bd=document.getElementById('bd-'+col);bd.addEventListener('dragover',e=>{e.preventDefault();bd.classList.add('over')});bd.addEventListener('dragleave',()=>bd.classList.remove('over'));bd.addEventListener('drop',async e=>{e.preventDefault();bd.classList.remove('over');if(!dragId||dropping)return;const mid=dragId;dragId=null;dropping=true;const m=M.find(x=>x.id===mid);if(!m||m.column===col){dropping=false;return}const old=m.column;m.column=col;render();sL(true);try{await api({action:'update',machine:m});toast('Movida para "'+col+'"');await loadAll()}catch(er){console.error(er);m.column=old;render();toast('Erro ao salvar.','err')}finally{sL(false);dropping=false}})});
 function showCo(title,msg,btnText,btnColor,iconBg,action){cAction=action;document.getElementById('cT').textContent=title;document.getElementById('cM').textContent=msg;document.getElementById('cOk').textContent=btnText;document.getElementById('cOk').style.background=btnColor;document.getElementById('cIcon').style.background=iconBg;document.getElementById('cBg').classList.add('open')}
 function closeCo(){cAction=null;document.getElementById('cBg').classList.remove('open')}
 function cEnt(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Confirmar Entrega','Confirmar que "'+m.name+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{sL(true);try{m.column='Locada';await api({action:'update',machine:m});toast(m.name+' — Entrega confirmada!');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}})}
-function iRet(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Iniciar Retorno','Iniciar retorno de "'+m.name+'"? Voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{sL(true);try{m.column='Retornando';await api({action:'update',machine:m});toast(m.name+' — Retorno iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{sL(false)}})}
-function iRetM(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Retorno da Obra','Iniciar retorno de "'+m.name+'" da obra da MMC Metálica? O campo cliente será limpo e ela voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{sL(true);try{m.column='Retornando';m.cc='';m.nc='';await api({action:'update',machine:m});toast(m.name+' — Retorno da obra iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{sL(false)}})}
+function iRet(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Iniciar Retorno','Iniciar retorno de "'+m.name+'"? Voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{sL(true);try{m.column='Retornando';await api({action:'update',machine:m});toast(m.name+' — Retorno iniciado!');await applyMode();
+loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{sL(false)}})}
+function iRetM(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Retorno da Obra','Iniciar retorno de "'+m.name+'" da obra da MMC Metálica? O campo cliente será limpo e ela voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{sL(true);try{m.column='Retornando';m.cc='';m.nc='';await api({action:'update',machine:m});toast(m.name+' — Retorno da obra iniciado!');await applyMode();
+loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{sL(false)}})}
 function aDel(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Remover Máquina','Remover "'+m.name+'"? Esta ação não pode ser desfeita.','Remover','#ef4444','#fee2e2',async()=>{sL(true);try{await api({action:'delete',id});toast('Máquina removida.');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}})}
 function oRen(id){const m=M.find(x=>x.id===id);if(!m)return;rId=id;document.getElementById('rN').value=m.name;document.getElementById('rC').value=m.cc||'';document.getElementById('rDS').value='';document.getElementById('rDE').value='';document.getElementById('rBg').classList.add('open')}
 function closeR(){document.getElementById('rBg').classList.remove('open');rId=null}
@@ -269,6 +278,7 @@ document.getElementById('mBg').addEventListener('click',e=>{if(e.target===docume
 document.getElementById('rBg').addEventListener('click',e=>{if(e.target===document.getElementById('rBg'))closeR()});
 document.getElementById('cBg').addEventListener('click',e=>{if(e.target===document.getElementById('cBg'))closeCo()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){cModal();closeR();closeCo()}});
+applyMode();
 loadAll();
 </script>
 </body>
