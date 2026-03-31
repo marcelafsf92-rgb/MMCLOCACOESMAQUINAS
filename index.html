@@ -7,159 +7,498 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--navy:#1E3A8A;--navy-h:#2348a8;--navy-d:#152d6e;--gold:#F5A623;--gold-h:#f7b844;--bg:#eef2fb;--surface:#fff;--border:#dde4f0;--text:#1a202c;--muted:#6b7280;--sh-s:0 1px 4px rgba(30,58,138,.08);--sh-m:0 4px 16px rgba(30,58,138,.12);--sh-l:0 12px 40px rgba(30,58,138,.20);--r:12px}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-    #loadBar{position:fixed;top:0;left:0;width:100%;height:3px;background:var(--gold);z-index:9999;transform:scaleX(0);transform-origin:left;transition:transform .35s;pointer-events:none}
-    #loadBar.on{transform:scaleX(.75)}#loadBar.done{transform:scaleX(1);transition:transform .1s}
-    #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;max-width:320px;box-shadow:var(--sh-l);transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
-    #toast.show{transform:translateY(0);opacity:1}
-    #toast.ok{background:#d1fae5;color:#065f46;border-left:4px solid #10b981}
-    #toast.err{background:#fee2e2;color:#991b1b;border-left:4px solid #ef4444}
-    #spin{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(30,58,138,.1);z-index:9998;opacity:0;pointer-events:none;transition:opacity .2s}
-    #spin.on{opacity:1;pointer-events:all}
-    .sring{width:44px;height:44px;border-radius:50%;border:4px solid rgba(30,58,138,.18);border-top-color:var(--navy);animation:sp .7s linear infinite}
-    @keyframes sp{to{transform:rotate(360deg)}}
-    .hdr{background:linear-gradient(135deg,#1E3A8A 0%,#152C6B 60%,#0F1F4D 100%);height:74px;padding:0 28px;display:flex;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,.3);position:sticky;top:0;z-index:200;border-bottom:3px solid var(--gold)}
-    .hdr-in{width:100%;max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
-    .hdr-brand{display:flex;align-items:center;gap:14px}
-    .logo-b{width:44px;height:44px;border-radius:10px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:19px;color:var(--navy);letter-spacing:1px}
-    .br-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;color:#fff;letter-spacing:.4px;line-height:1.1}
-    .br-sub{font-size:11.5px;color:rgba(255,255,255,.55)}
-    .btn-add{display:flex;align-items:center;gap:7px;background:var(--gold);color:var(--navy);border:none;border-radius:9px;padding:10px 20px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.5px;transition:background .18s,transform .1s}
-    .btn-add:hover{background:var(--gold-h)}.btn-add:active{transform:scale(.97)}
-    .btn-add svg{width:16px;height:16px}
-    .tabs{background:var(--surface);border-bottom:2px solid var(--border);padding:0 28px}
-    .tabs-in{max-width:1440px;margin:0 auto;display:flex}
-    .tbtn{padding:14px 24px;border:none;background:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .18s}
-    .tbtn:hover{color:var(--navy)}.tbtn.active{color:var(--navy);border-bottom-color:var(--gold)}
-    .tbtn .tc{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:12px;background:var(--navy);color:#fff;font-size:11px;font-weight:600;margin-left:8px}
-    .tbar{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 28px}
-    .tbar-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .swrap{position:relative;flex:1;min-width:180px;max-width:340px}
-    .swrap .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted);pointer-events:none}
-    .sinput{width:100%;padding:8px 12px 8px 36px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none}
-    .sinput:focus{border-color:var(--navy)}
-    .sel{padding:8px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;font-family:'DM Sans',sans-serif;background:var(--bg);cursor:pointer;outline:none}
-    .bdef{margin-left:auto;display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:500}
-    .bdef .dot{width:8px;height:8px;border-radius:50%;background:#ef4444}
-    .bwrap{padding:24px 28px;max-width:1440px;margin:0 auto}
-    .board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start}
-    .tcont{display:none}.tcont.active{display:block}
-    .col{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-s);display:flex;flex-direction:column}
-    .ch{padding:15px 18px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-    .chl{display:flex;align-items:center;gap:9px}
-    .cdot{width:11px;height:11px;border-radius:50%}
-    .col-ret .cdot{background:#f59e0b}.col-dis .cdot{background:#10b981}.col-tra .cdot{background:#3b82f6}
-    .ctitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:.6px;text-transform:uppercase;color:var(--navy)}
-    .ccnt{background:var(--navy);color:#fff;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:600}
-    .cbody{padding:12px 10px;display:flex;flex-direction:column;gap:10px;min-height:80px;border-radius:0 0 var(--r) var(--r);transition:background .18s}
-    .cbody.over{background:rgba(30,58,138,.045)}
-    .cempty{text-align:center;padding:22px 12px;color:var(--muted);font-size:13px}
-    .card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:13px;cursor:grab;transition:box-shadow .18s,border-color .18s,transform .12s;user-select:none}
-    .card:hover{box-shadow:var(--sh-m);border-color:var(--navy)}
-    .card.dragging{opacity:.45;cursor:grabbing;transform:scale(1.03)}
-    .ctop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
-    .cname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--navy);line-height:1.2;flex:1}
-    .cbtns{display:flex;gap:4px}
-    .cb{width:28px;height:28px;border:none;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
-    .cb svg{width:13px;height:13px}
-    .cb-h{background:#f5f3ff;color:#7c3aed}.cb-h:hover{background:#ede9fe}
-    .cb-e{background:#eff6ff;color:var(--navy)}.cb-e:hover{background:#dbeafe}
-    .cb-d{background:#fff1f2;color:#e11d48}.cb-d:hover{background:#ffe4e6}
-    .cb-c{background:#d1fae5;color:#065f46}.cb-c:hover{background:#bbf7d0}
-    .mb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:9px}
-    .mb::before{content:'';width:7px;height:7px;border-radius:50%}
-    .mb-ok{background:#d1fae5;color:#065f46}.mb-ok::before{background:#10b981}
-    .mb-rv{background:#fef3c7;color:#92400e}.mb-rv::before{background:#f59e0b}
-    .mb-df{background:#fee2e2;color:#991b1b}.mb-df::before{background:#ef4444}
-    .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
-    .cf label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:1px}
-    .cf span{font-size:13px;color:var(--text);font-weight:500}
-    .cf span.nil{color:var(--muted);font-style:italic}
-    .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
-    .lcard{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:16px;transition:box-shadow .18s}
-    .lcard:hover{box-shadow:var(--sh-m)}
-    .lacts{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-    .abtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;background:#fff}
-    .abtn svg{width:14px;height:14px}
-    .abtn.ret{color:#f59e0b;border-color:#fef3c7;background:#fffbeb}.abtn.ret:hover{background:#fef3c7;border-color:#f59e0b}
-    .abtn.ren{color:#3b82f6;border-color:#dbeafe;background:#eff6ff}.abtn.ren:hover{background:#dbeafe;border-color:#3b82f6}
-    .abtn.edt{color:var(--navy);border-color:#dde4f0;background:#f8fafc}.abtn.edt:hover{background:#e2e8f0;border-color:var(--navy)}
-    .mbg{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
-    .mbg.open{opacity:1;pointer-events:all}
-    .modal{background:#fff;border-radius:16px;width:100%;max-width:530px;box-shadow:0 28px 90px rgba(0,0,0,.28);transform:scale(.95) translateY(10px);transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
-    .mbg.open .modal{transform:scale(1) translateY(0)}
-    .mhd{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between}
-    .mtitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;color:var(--navy)}
-    .mx{width:32px;height:32px;border:none;background:var(--bg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:background .15s}
-    .mx:hover{background:#e2e8f0}.mx svg{width:15px;height:15px}
-    .mbd{padding:18px 24px;display:grid;gap:14px}
-    .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .fg{display:flex;flex-direction:column;gap:5px}
-    .fg label{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
-    .fg input,.fg select{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;transition:border-color .18s}
-    .fg input:focus,.fg select:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(30,58,138,.10)}
-    .mft{padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end}
-    .btnc{padding:10px 18px;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
-    .btnc:hover{background:#e2e8f0}
-    .btns{padding:10px 22px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:.5px;cursor:pointer}
-    .btns:hover{background:var(--navy-h)}
-    .cobg{position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
-    .cobg.open{opacity:1;pointer-events:all}
-    .cobox{background:#fff;border-radius:14px;padding:24px;max-width:360px;width:100%;box-shadow:0 28px 90px rgba(0,0,0,.28);transform:scale(.95);transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
-    .cobg.open .cobox{transform:scale(1)}
-    .coicon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-    .coicon svg{width:24px;height:24px}
-    .cotitle{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;margin-bottom:6px}
-    .comsg{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:20px}
-    .coacts{display:flex;gap:10px;justify-content:flex-end}
-    .cobtn{padding:10px 20px;color:#fff;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;cursor:pointer}
-    @media(max-width:1100px){.board{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.board{grid-template-columns:1fr}.lgrid{grid-template-columns:1fr}}
-    @media(max-width:640px){.hdr{padding:0 14px}.tbar{padding:10px 14px}.bwrap{padding:14px}.br-sub{display:none}.bdef{display:none}.tabs{padding:0 14px}}
-  body:not(.editor-mode) .btn-add{display:none}
-    body:not(.editor-mode) .cb-e,body:not(.editor-mode) .cb-d,body:not(.editor-mode) .cb-c{display:none}
-    body:not(.editor-mode) .lacts{display:none}
-    body:not(.editor-mode) .card{cursor:default}
-    .hist-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px}
-    .hist-date{font-size:11px;color:var(--muted);min-width:90px;text-align:center;line-height:1.3}
-    .hist-date b{display:block;font-size:13px;color:var(--text)}
-    .hist-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .hist-icon svg{width:16px;height:16px}
-    .hist-body{flex:1;min-width:0}
-    .hist-maq{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--navy)}
-    .hist-desc{font-size:12px;color:var(--muted);margin-top:2px}
-    .hist-time{font-size:11px;color:var(--muted);background:var(--bg);padding:3px 8px;border-radius:6px;white-space:nowrap}
-    .mode-btn{padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:rgba(255,255,255,.15);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .18s;letter-spacing:.3px}
-    .mode-btn:hover{background:rgba(255,255,255,.25)}
-</style>
+    /* ===== RESET & VARIABLES ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1E3A8A;
+      --navy-h: #2348a8;
+      --navy-d: #152d6e;
+      --gold: #F5A623;
+      --gold-h: #f7b844;
+      --bg: #eef2fb;
+      --surface: #fff;
+      --border: #dde4f0;
+      --text: #1a202c;
+      --muted: #6b7280;
+      --sh-s: 0 1px 4px rgba(30,58,138,.08);
+      --sh-m: 0 4px 16px rgba(30,58,138,.12);
+      --sh-l: 0 12px 40px rgba(30,58,138,.20);
+      --r: 12px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ===== LOADING BAR ===== */
+    #loadBar {
+      position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+      background: var(--gold); z-index: 9999;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform .35s; pointer-events: none;
+    }
+    #loadBar.on { transform: scaleX(.75); }
+    #loadBar.done { transform: scaleX(1); transition: transform .1s; }
+
+    /* ===== SPINNER ===== */
+    #spin {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(30,58,138,.1); z-index: 9998;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    #spin.on { opacity: 1; pointer-events: all; }
+    .sring {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 4px solid rgba(30,58,138,.18); border-top-color: var(--navy);
+      animation: sp .7s linear infinite;
+    }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* ===== TOAST ===== */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500;
+      max-width: 320px; box-shadow: var(--sh-l);
+      transform: translateY(80px); opacity: 0;
+      transition: all .28s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.ok { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+    #toast.err { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+
+    /* ===== HEADER ===== */
+    .hdr {
+      background: linear-gradient(135deg, #1E3A8A 0%, #152C6B 60%, #0F1F4D 100%);
+      height: 74px; padding: 0 28px;
+      display: flex; align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+      position: sticky; top: 0; z-index: 200;
+      border-bottom: 3px solid var(--gold);
+    }
+    .hdr-in {
+      width: 100%; max-width: 1440px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .hdr-brand { display: flex; align-items: center; gap: 14px; }
+    .hdr-logo { height: 58px; mix-blend-mode: screen; margin: -8px 0; object-fit: contain; }
+    .hdr-text { display: flex; flex-direction: column; margin-left: 16px; line-height: 1.15; }
+    .br-name {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 22px; color: #fff; letter-spacing: .4px;
+    }
+    .br-sub { font-size: 12px; color: rgba(255,255,255,.55); }
+    .hdr-actions { display: flex; align-items: center; gap: 8px; }
+    .mode-btn {
+      padding: 6px 14px; border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px; background: rgba(255,255,255,.15); color: #fff;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 13px;
+      cursor: pointer; transition: all .18s; letter-spacing: .3px;
+    }
+    .mode-btn:hover { background: rgba(255,255,255,.25); }
+    .refresh-btn {
+      padding: 6px 10px; border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px; background: rgba(255,255,255,.15); color: #fff;
+      cursor: pointer; transition: all .18s; display: flex; align-items: center;
+    }
+    .refresh-btn:hover { background: rgba(255,255,255,.25); }
+    .refresh-btn svg { width: 16px; height: 16px; }
+    .btn-add {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--gold); color: var(--navy); border: none; border-radius: 9px;
+      padding: 10px 20px; cursor: pointer;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px;
+      letter-spacing: .5px; transition: background .18s, transform .1s;
+    }
+    .btn-add:hover { background: var(--gold-h); }
+    .btn-add:active { transform: scale(.97); }
+    .btn-add svg { width: 16px; height: 16px; }
+
+    /* ===== TABS ===== */
+    .tabs { background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 28px; }
+    .tabs-in { max-width: 1440px; margin: 0 auto; display: flex; overflow-x: auto; }
+    .tbtn {
+      padding: 14px 24px; border: none; background: none;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px;
+      letter-spacing: .5px; text-transform: uppercase; color: var(--muted);
+      cursor: pointer; border-bottom: 3px solid transparent; transition: all .18s;
+      white-space: nowrap;
+    }
+    .tbtn:hover { color: var(--navy); }
+    .tbtn.active { color: var(--navy); border-bottom-color: var(--gold); }
+    .tc {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 22px; height: 22px; padding: 0 6px;
+      border-radius: 12px; background: var(--navy); color: #fff;
+      font-size: 11px; font-weight: 600; margin-left: 8px;
+    }
+
+    /* ===== TOOLBAR ===== */
+    .tbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 11px 28px; }
+    .tbar-in {
+      max-width: 1440px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .swrap { position: relative; flex: 1; min-width: 180px; max-width: 340px; }
+    .swrap .ico {
+      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+      width: 15px; height: 15px; color: var(--muted); pointer-events: none;
+    }
+    .sinput {
+      width: 100%; padding: 8px 12px 8px 36px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 13.5px; font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--text); outline: none;
+    }
+    .sinput:focus { border-color: var(--navy); }
+    .sel {
+      padding: 8px 13px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 13.5px; font-family: 'DM Sans', sans-serif;
+      background: var(--bg); cursor: pointer; outline: none;
+    }
+    .bdef {
+      margin-left: auto; display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px;
+      background: #fee2e2; color: #991b1b; font-size: 13px; font-weight: 500;
+    }
+    .bdef .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+
+    /* ===== CONTENT ===== */
+    .bwrap { padding: 24px 28px; max-width: 1440px; margin: 0 auto; }
+    .tcont { display: none; }
+    .tcont.active { display: block; }
+
+    /* ===== KANBAN ===== */
+    .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; }
+    .col {
+      background: var(--surface); border-radius: var(--r);
+      box-shadow: var(--sh-s); display: flex; flex-direction: column;
+    }
+    .ch {
+      padding: 15px 18px 13px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .chl { display: flex; align-items: center; gap: 9px; }
+    .cdot { width: 11px; height: 11px; border-radius: 50%; }
+    .col-ret .cdot { background: #f59e0b; }
+    .col-man .cdot { background: #ef4444; }
+    .col-dis .cdot { background: #10b981; }
+    .col-tra .cdot { background: #3b82f6; }
+    .ctitle {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 16px; letter-spacing: .6px; text-transform: uppercase; color: var(--navy);
+    }
+    .ccnt {
+      background: var(--navy); color: #fff; border-radius: 20px;
+      padding: 2px 9px; font-size: 12px; font-weight: 600;
+    }
+    .cbody {
+      padding: 12px 10px; display: flex; flex-direction: column; gap: 10px;
+      min-height: 80px; border-radius: 0 0 var(--r) var(--r); transition: background .18s;
+    }
+    .cbody.over { background: rgba(30,58,138,.045); }
+    .cempty { text-align: center; padding: 22px 12px; color: var(--muted); font-size: 13px; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 13px; cursor: grab;
+      transition: box-shadow .18s, border-color .18s, transform .12s; user-select: none;
+    }
+    .card:hover { box-shadow: var(--sh-m); border-color: var(--navy); }
+    .card.dragging { opacity: .45; cursor: grabbing; transform: scale(1.03); }
+    .card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .card-info { flex: 1; min-width: 0; }
+    .cname {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 17px; color: var(--navy); line-height: 1.2;
+    }
+    .cserie { font-size: 11px; color: var(--muted); }
+    .cbtns { display: flex; gap: 4px; }
+    .cb {
+      width: 28px; height: 28px; border: none; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .15s;
+    }
+    .cb svg { width: 13px; height: 13px; }
+    .cb-h { background: #f5f3ff; color: #7c3aed; }
+    .cb-h:hover { background: #ede9fe; }
+    .cb-e { background: #eff6ff; color: var(--navy); }
+    .cb-e:hover { background: #dbeafe; }
+    .cb-d { background: #fff1f2; color: #e11d48; }
+    .cb-d:hover { background: #ffe4e6; }
+    .cb-c { background: #d1fae5; color: #065f46; }
+    .cb-c:hover { background: #bbf7d0; }
+
+    /* ===== BADGES ===== */
+    .mb {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      margin-bottom: 9px;
+    }
+    .mb::before { content: ''; width: 7px; height: 7px; border-radius: 50%; }
+    .mb-ok { background: #d1fae5; color: #065f46; }
+    .mb-ok::before { background: #10b981; }
+    .mb-prog { background: #fef3c7; color: #92400e; }
+    .mb-prog::before { background: #f59e0b; }
+    .mb-df { background: #fee2e2; color: #991b1b; }
+    .mb-df::before { background: #ef4444; }
+
+    /* ===== DATA GRID ===== */
+    .cgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+    .cf label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted); display: block; margin-bottom: 1px;
+    }
+    .cf span { font-size: 13px; color: var(--text); font-weight: 500; }
+    .cf span.nil { color: var(--muted); font-style: italic; }
+
+    /* ===== LIST CARDS ===== */
+    .lgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+    .lcard {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 16px; transition: box-shadow .18s;
+    }
+    .lcard:hover { box-shadow: var(--sh-m); }
+    .lcard-gold { border-left: 3px solid var(--gold); }
+    .lcard-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .lcard-info { flex: 1; min-width: 0; }
+    .lacts {
+      display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .abtn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .15s; background: #fff; min-width: 80px;
+    }
+    .abtn svg { width: 14px; height: 14px; }
+    .abtn.ret { color: #f59e0b; border-color: #fef3c7; background: #fffbeb; }
+    .abtn.ret:hover { background: #fef3c7; border-color: #f59e0b; }
+    .abtn.ren { color: #3b82f6; border-color: #dbeafe; background: #eff6ff; }
+    .abtn.ren:hover { background: #dbeafe; border-color: #3b82f6; }
+    .abtn.hist { color: #7c3aed; border-color: #ede9fe; background: #f5f3ff; }
+    .abtn.hist:hover { background: #ede9fe; border-color: #7c3aed; }
+    .abtn.edt { color: var(--navy); border-color: #dde4f0; background: #f8fafc; }
+    .abtn.edt:hover { background: #e2e8f0; border-color: var(--navy); }
+
+    /* ===== VR BADGE ===== */
+    .vr-badge {
+      padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 600; display: inline-block;
+    }
+    .vr-venda { background: #fee2e2; color: #991b1b; }
+    .vr-reforma { background: #fef3c7; color: #92400e; }
+    .vr-decidir { background: #ede9fe; color: #5b21b6; }
+
+    /* ===== HISTORY ===== */
+    .hist-row {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 16px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .hist-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .hist-icon svg { width: 16px; height: 16px; }
+    .hist-date {
+      font-size: 11px; color: var(--muted); min-width: 90px;
+      text-align: center; line-height: 1.3;
+    }
+    .hist-date b { display: block; font-size: 13px; color: var(--text); }
+    .hist-body { flex: 1; min-width: 0; }
+    .hist-maq {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 14px; color: var(--navy);
+    }
+    .hist-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .hist-time {
+      font-size: 11px; color: var(--muted); background: var(--bg);
+      padding: 3px 8px; border-radius: 6px; white-space: nowrap;
+    }
+
+    /* ===== MODALS ===== */
+    .mbg {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(15,23,42,.55); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .mbg.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #fff; border-radius: 16px; width: 100%; max-width: 530px;
+      box-shadow: 0 28px 90px rgba(0,0,0,.28);
+      transform: scale(.95) translateY(10px);
+      transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+    }
+    .mbg.open .modal { transform: scale(1) translateY(0); }
+    .mhd {
+      padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between;
+    }
+    .mtitle {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 22px; color: var(--navy);
+    }
+    .mx {
+      width: 32px; height: 32px; border: none; background: var(--bg);
+      border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); transition: background .15s;
+    }
+    .mx:hover { background: #e2e8f0; }
+    .mx svg { width: 15px; height: 15px; }
+    .mbd { padding: 18px 24px; display: grid; gap: 14px; }
+    .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .fg { display: flex; flex-direction: column; gap: 5px; }
+    .fg label {
+      font-size: 11.5px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted);
+    }
+    .fg input, .fg select, .fg textarea {
+      padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-family: 'DM Sans', sans-serif;
+      color: var(--text); background: #fff; outline: none; transition: border-color .18s;
+    }
+    .fg textarea { resize: vertical; }
+    .fg input:focus, .fg select:focus, .fg textarea:focus {
+      border-color: var(--navy); box-shadow: 0 0 0 3px rgba(30,58,138,.10);
+    }
+    .mft { padding: 0 24px 20px; display: flex; gap: 10px; justify-content: flex-end; }
+    .btnc {
+      padding: 10px 18px; background: var(--bg); color: var(--muted);
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer;
+    }
+    .btnc:hover { background: #e2e8f0; }
+    .btns {
+      padding: 10px 22px; background: var(--navy); color: #fff; border: none;
+      border-radius: 8px; font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 16px; letter-spacing: .5px; cursor: pointer;
+    }
+    .btns:hover { background: var(--navy-h); }
+
+    /* ===== CONFIRM ===== */
+    .cobg {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(15,23,42,.55); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .cobg.open { opacity: 1; pointer-events: all; }
+    .cobox {
+      background: #fff; border-radius: 14px; padding: 24px;
+      max-width: 360px; width: 100%;
+      box-shadow: 0 28px 90px rgba(0,0,0,.28);
+      transform: scale(.95); transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+    }
+    .cobg.open .cobox { transform: scale(1); }
+    .coicon {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+    }
+    .coicon svg { width: 24px; height: 24px; }
+    .cotitle {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 20px; margin-bottom: 6px;
+    }
+    .comsg { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+    .coacts { display: flex; gap: 10px; justify-content: flex-end; }
+    .cobtn {
+      padding: 10px 20px; color: #fff; border: none; border-radius: 8px;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 15px; cursor: pointer;
+    }
+
+    /* ===== EDITOR MODE ===== */
+    body:not(.editor-mode) .btn-add { display: none; }
+    body:not(.editor-mode) .cb-e,
+    body:not(.editor-mode) .cb-d,
+    body:not(.editor-mode) .cb-c { display: none; }
+    body:not(.editor-mode) .lacts { display: none; }
+    body:not(.editor-mode) .card { cursor: default; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1100px) { .board { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 700px) {
+      .board { grid-template-columns: 1fr; }
+      .lgrid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .hdr { padding: 0 14px; }
+      .tbar { padding: 10px 14px; }
+      .bwrap { padding: 14px; }
+      .br-sub { display: none; }
+      .bdef { display: none; }
+      .tabs { padding: 0 14px; }
+    }
+  </style>
 </head>
 <body>
+
+<!-- Global UI -->
 <div id="loadBar"></div>
 <div id="spin"><div class="sring"></div></div>
 <div id="toast"></div>
 
-<header class="hdr"><div class="hdr-in">
-  <div class="hdr-brand"><img src="logo.jpg" alt="MMC Locações" style="height:58px;mix-blend-mode:screen;margin:-8px 0;object-fit:contain"><div style="display:flex;flex-direction:column;margin-left:16px;line-height:1.15"><span class="br-name">Controle de Plataformas</span><span class="br-sub" style="font-size:12px">Elevatórias</span></div></div>
-  <button class="mode-btn" id="modeBtn" onclick="if(!isEditor){checkEditor()}else{isEditor=false;sessionStorage.removeItem('mmc_editor');applyMode();toast('Modo visualização')}">Visualização</button>
-    <button class="mode-btn" id="refreshBtn" onclick="loadAll();loadHist().then(renderHist);toast('Dados atualizados!')" style="margin-right:4px" title="Atualizar dados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button><button class="btn-add" id="btnAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Máquina</button>
-</div></header>
+<!-- Header -->
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="hdr-brand">
+      <img src="logo.jpg" alt="MMC Locações" class="hdr-logo">
+      <div class="hdr-text">
+        <span class="br-name">Controle de Plataformas</span>
+        <span class="br-sub">Elevatórias</span>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <button class="mode-btn" id="modeBtn">Visualização</button>
+      <button class="refresh-btn" id="refreshBtn" title="Atualizar dados">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      </button>
+      <button class="btn-add" id="btnAdd">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Máquina
+      </button>
+    </div>
+  </div>
+</header>
 
+<!-- Tabs -->
 <div class="tabs"><div class="tabs-in">
-  <button class="tbtn active" data-tab="status" onclick="switchTab('status')">Status <span class="tc" id="tcS">0</span></button>
-  <button class="tbtn" data-tab="locadas" onclick="switchTab('locadas')">Locadas <span class="tc" id="tcL">0</span></button>
-  <button class="tbtn" data-tab="marcelo" onclick="switchTab('marcelo')">Obras MMC Metálica <span class="tc" id="tcM">0</span></button>
-  <button class="tbtn" data-tab="historico" onclick="switchTab('historico')">Histórico</button>
-  <button class="tbtn" data-tab="vendaref" onclick="switchTab('vendaref')">Venda/Reforma <span class="tc" id="tcVR">0</span></button>
+  <button class="tbtn active" data-tab="status">Status <span class="tc" id="tcS">0</span></button>
+  <button class="tbtn" data-tab="locadas">Locadas <span class="tc" id="tcL">0</span></button>
+  <button class="tbtn" data-tab="marcelo">Obras MMC Metálica <span class="tc" id="tcM">0</span></button>
+  <button class="tbtn" data-tab="historico">Histórico</button>
+  <button class="tbtn" data-tab="vendaref">Venda/Reforma <span class="tc" id="tcVR">0</span></button>
 </div></div>
 
+<!-- Toolbar -->
 <div class="tbar"><div class="tbar-in">
-  <div class="swrap"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="sinput" id="sI" type="text" placeholder="Buscar por nome ou cliente…"></div>
-  <select class="sel" id="fMarcaFilter"><option value="">Todas as marcas</option><option value="JLG">JLG</option><option value="Haulotte">Haulotte</option><option value="Genie">Genie</option><option value="Manitou">Manitou</option><option value="Skyjack">Skyjack</option></select>
-    <select class="sel" id="fS"><option value="">Todas as manutenções</option><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select>
+  <div class="swrap">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="sinput" id="sI" type="text" placeholder="Buscar por nome ou cliente…">
+  </div>
+  <select class="sel" id="fMarcaFilter">
+    <option value="">Todas as marcas</option>
+    <option value="JLG">JLG</option><option value="Haulotte">Haulotte</option>
+    <option value="Genie">Genie</option><option value="Manitou">Manitou</option>
+    <option value="Skyjack">Skyjack</option>
+  </select>
+  <select class="sel" id="fS">
+    <option value="">Todas as manutenções</option>
+    <option value="Ok - revisada">Ok - revisada</option>
+    <option value="Em andamento">Em andamento</option>
+    <option value="Com defeito">Com defeito</option>
+  </select>
   <div class="bdef"><span class="dot"></span><span id="dC">0</span>&nbsp;com defeito</div>
 </div></div>
 
+<!-- Tab: Status -->
 <div class="tcont active" id="tab-status"><div class="bwrap"><div class="board">
   <div class="col col-ret"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Retornando</span></div><span class="ccnt" id="cn-Retornando">0</span></div><div class="cbody" id="bd-Retornando"></div></div>
   <div class="col col-man"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Em Manutenção</span></div><span class="ccnt" id="cn-Manutenção">0</span></div><div class="cbody" id="bd-Manutenção"></div></div>
@@ -167,43 +506,60 @@
   <div class="col col-tra"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Reservado</span></div><span class="ccnt" id="cn-Reservado">0</span></div><div class="cbody" id="bd-Reservado"></div></div>
 </div></div></div>
 
+<!-- Tab: Locadas -->
 <div class="tcont" id="tab-locadas"><div class="bwrap"><div class="lgrid" id="lGrid"></div></div></div>
 
+<!-- Tab: Obras MMC -->
 <div class="tcont" id="tab-marcelo"><div class="bwrap"><div class="lgrid" id="mGrid"></div></div></div>
 
+<!-- Tab: Venda/Reforma -->
 <div class="tcont" id="tab-vendaref"><div class="bwrap"><div class="lgrid" id="vrGrid"></div></div></div>
 
+<!-- Tab: Histórico -->
 <div class="tcont" id="tab-historico"><div class="bwrap">
   <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-    <select class="sel" id="hMaqFilter" onchange="renderHist()"><option value="">Todas as máquinas</option></select>
-    <select class="sel" id="hActionFilter" onchange="renderHist()"><option value="">Todas as ações</option><option value="status">Mudança de status</option><option value="cliente">Mudança de cliente</option><option value="edicao">Edição</option></select>
-    <input class="sinput" id="hDateFrom" type="date" style="max-width:160px" onchange="renderHist()">
+    <select class="sel" id="hMaqFilter"><option value="">Todas as máquinas</option></select>
+    <select class="sel" id="hActionFilter">
+      <option value="">Todas as ações</option>
+      <option value="status">Mudança de status</option>
+      <option value="cliente">Mudança de cliente</option>
+      <option value="edicao">Edição</option>
+    </select>
+    <input class="sinput" id="hDateFrom" type="date" style="max-width:160px;padding-left:12px">
     <span style="color:var(--muted);font-size:13px">até</span>
-    <input class="sinput" id="hDateTo" type="date" style="max-width:160px" onchange="renderHist()">
+    <input class="sinput" id="hDateTo" type="date" style="max-width:160px;padding-left:12px">
   </div>
   <div id="histGrid" style="display:flex;flex-direction:column;gap:8px"></div>
 </div></div>
 
-<div class="mbg" id="mBg"><div class="modal"><div class="mhd"><span class="mtitle" id="mT">Nova Máquina</span><button class="mx" id="mX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
-<div class="mbd">
-  <div class="frow"><div class="fg"><label>Modelo *</label><input id="fModelo" type="text" placeholder="Ex: Tesoura 26m"></div><div class="fg"><label>Nº Série *</label><input id="fSerie" type="text" placeholder="Ex: 916946"></div></div>
-      <div class="fg"><label>Marca</label><select id="fMarca"><option value="">Selecione...</option><option value="JLG">JLG</option><option value="Haulotte">Haulotte</option><option value="Genie">Genie</option><option value="Manitou">Manitou</option><option value="Skyjack">Skyjack</option><option value="Outra">Outra</option></select></div><input id="fN" type="hidden" value="">
-  <div class="frow"><div class="fg"><label>Cliente Atual</label><input id="fCC" type="text" placeholder="Nome do cliente"></div><div class="fg"><label>Próximo Cliente</label><input id="fNC" type="text" placeholder="Próximo cliente"></div></div>
-  <div class="fg"><label>Data da Locação</label><input id="fDL" type="date"></div>
-      <div class="frow"><div class="fg"><label>Data de Retorno</label><input id="fDR" type="date"></div><div class="fg"><label>Data Próxima Locação</label><input id="fDN" type="date"></div></div>
-  <div class="fg"><label>Observações</label><textarea id="fObs" rows="2" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;resize:vertical" placeholder="Ex: necessita troca de bateria"></textarea></div>
-      <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Manutenção">Em Manutenção</option><option value="Disponível">Disponível</option><option value="Reservado">Reservado</option><option value="Locada">Locada</option><option value="Obra MMC">Obra MMC Metálica</option><option value="Venda">Venda</option><option value="Reforma">Reforma</option><option value="A decidir">A decidir/avaliar</option></select></div></div>
-</div>
-<div class="mft"><button class="btnc" id="mC">Cancelar</button><button class="btns" id="mS">Salvar</button></div></div></div>
+<!-- Modal: Add/Edit Machine -->
+<div class="mbg" id="mBg"><div class="modal">
+  <div class="mhd"><span class="mtitle" id="mT">Nova Máquina</span><button class="mx" id="mX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="mbd">
+    <div class="frow"><div class="fg"><label>Modelo *</label><input id="fModelo" type="text" placeholder="Ex: Tesoura 26m"></div><div class="fg"><label>Nº Série</label><input id="fSerie" type="text" placeholder="Ex: 916946"></div></div>
+    <div class="fg"><label>Marca</label><select id="fMarca"><option value="">Selecione...</option><option value="JLG">JLG</option><option value="Haulotte">Haulotte</option><option value="Genie">Genie</option><option value="Manitou">Manitou</option><option value="Skyjack">Skyjack</option><option value="Outra">Outra</option></select></div>
+    <input id="fN" type="hidden" value="">
+    <div class="frow"><div class="fg"><label>Cliente Atual</label><input id="fCC" type="text" placeholder="Nome do cliente"></div><div class="fg"><label>Próximo Cliente</label><input id="fNC" type="text" placeholder="Próximo cliente"></div></div>
+    <div class="fg"><label>Data da Locação</label><input id="fDL" type="date"></div>
+    <div class="frow"><div class="fg"><label>Data de Retorno</label><input id="fDR" type="date"></div><div class="fg"><label>Data Próxima Locação</label><input id="fDN" type="date"></div></div>
+    <div class="fg"><label>Observações</label><textarea id="fObs" rows="2" placeholder="Ex: necessita troca de bateria"></textarea></div>
+    <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Status/Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Manutenção">Em Manutenção</option><option value="Disponível">Disponível</option><option value="Reservado">Reservado</option><option value="Locada">Locada</option><option value="Obra MMC">Obra MMC Metálica</option><option value="Venda">Venda</option><option value="Reforma">Reforma</option><option value="A decidir">A decidir/avaliar</option></select></div></div>
+  </div>
+  <div class="mft"><button class="btnc" id="mC">Cancelar</button><button class="btns" id="mS">Salvar</button></div>
+</div></div>
 
-<div class="mbg" id="rBg"><div class="modal"><div class="mhd"><span class="mtitle">Renovar Contrato</span><button class="mx" onclick="closeR()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
-<div class="mbd">
-  <div class="fg"><label>Máquina</label><input id="rN" type="text" disabled></div>
-  <div class="fg"><label>Cliente</label><input id="rC" type="text" placeholder="Mesmo ou novo cliente"></div>
-  <div class="frow"><div class="fg"><label>Nova Data Início</label><input id="rDS" type="date"></div><div class="fg"><label>Nova Data Fim</label><input id="rDE" type="date"></div></div>
-</div>
-<div class="mft"><button class="btnc" onclick="closeR()">Cancelar</button><button class="btns" onclick="doR()">Renovar</button></div></div></div>
+<!-- Modal: Renew -->
+<div class="mbg" id="rBg"><div class="modal">
+  <div class="mhd"><span class="mtitle">Renovar Contrato</span><button class="mx" id="rX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="mbd">
+    <div class="fg"><label>Máquina</label><input id="rN" type="text" disabled></div>
+    <div class="fg"><label>Cliente</label><input id="rC" type="text" placeholder="Mesmo ou novo cliente"></div>
+    <div class="frow"><div class="fg"><label>Nova Data Início</label><input id="rDS" type="date"></div><div class="fg"><label>Nova Data Fim</label><input id="rDE" type="date"></div></div>
+  </div>
+  <div class="mft"><button class="btnc" id="rCancel">Cancelar</button><button class="btns" id="rSave">Renovar</button></div>
+</div></div>
 
+<!-- Confirm Dialog -->
 <div class="cobg" id="cBg"><div class="cobox">
   <div class="coicon" id="cIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>
   <div class="cotitle" id="cT">Confirmar</div>
@@ -212,163 +568,521 @@
 </div></div>
 
 <script>
-const API='https://script.google.com/macros/s/AKfycbzUBhDAvIwVzRWpCZyI_2zRDKvB0VCs0gdosIen6l0_2vqaCUOgjsr97CVoU5ilflLWAg/exec';
-const SCOLS=['Retornando','Manutenção','Disponível','Reservado'];
-let M=[],dragId=null,editId=null,cAction=null,rId=null,curTab='status',dropping=false;
-const EDIT_PASS='mmc2026';
-let isEditor=sessionStorage.getItem('mmc_editor')==='true';
-function checkEditor(){if(isEditor)return true;const p=prompt('Digite a senha de edição:');if(p===EDIT_PASS){isEditor=true;sessionStorage.setItem('mmc_editor','true');applyMode();toast('Modo editor ativado!');return true}toast('Senha incorreta.','err');return false}
-function applyMode(){document.body.classList.toggle('editor-mode',isEditor);document.getElementById('modeBtn').textContent=isEditor?'Editor':'Visualização';document.getElementById('modeBtn').style.background=isEditor?'#10b981':'rgba(255,255,255,.15)'}
-const S2E={retornando:'Retornando',manutencao:'Manutenção',disponivel:'Disponível',reservado:'Reservado',locada:'Locada',obra_mmc:'Obra MMC',venda:'Venda',reforma:'Reforma',a_decidir:'A decidir'};
-const E2S={};Object.entries(S2E).forEach(([k,v])=>E2S[v]=k);
-const M2E={ok_revisada:'Ok - revisada',em_andamento:'Em andamento',com_defeito:'Com defeito'};
-const E2M={};Object.entries(M2E).forEach(([k,v])=>E2M[v]=k);
-const MARCA_LOGO={'JLG':'logo-jlg.png','Haulotte':'logo-haulotte.png','Genie':'logo-genie.png','Manitou':'logo-manitou.png'};
-const MARCA_BG={'JLG':'#F26522','Haulotte':'#1a1a1a','Genie':'#0057A0','Manitou':'#CC0000'};
-function marcaHTML(marca){const logo=MARCA_LOGO[marca];const bg=MARCA_BG[marca]||'#666';if(logo)return '<img src="'+logo+'" alt="'+esc(marca)+'" style="height:28px;object-fit:contain;max-width:60px">';return '<span style="color:#fff;font-size:9px;font-weight:500;letter-spacing:.5px">'+esc(marca||'?')+'</span>'}
-function marcaBadge(marca){const bg=MARCA_BG[marca]||'#666';return '<div style="width:68px;height:36px;border-radius:6px;background:'+bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px">'+marcaHTML(marca)+'</div>'}
-function fromS(m){return{id:m.id,name:m.maquina||'',column:S2E[m.status]||'Disponível',cc:m.cliente_atual||'',nc:m.proximo_cliente||'',dr:m.data_retorno||'',dn:m.data_proxima_locacao||'',dl:m.data_locacao||'',ms:M2E[m.manutencao]||'Ok - revisada',modelo:m.modelo||'',serie:m.numero_serie||'',marca:m.marca||'',obs:m.observacoes||''}}
-function toS(m){return{id:m.id,maquina:m.name||'',status:E2S[m.column]||'disponivel',cliente_atual:m.cc||'',proximo_cliente:m.nc||'',data_retorno:m.dr||'',data_proxima_locacao:m.dn||'',data_locacao:m.dl||'',manutencao:E2M[m.ms]||'ok',modelo:m.modelo||'',numero_serie:m.serie||'',marca:m.marca||''}}
-function clearCache(){sessionStorage.removeItem("mmc_cache")}
-async function api(body){if(body.action&&body.action!=="getAll")clearCache();if(body.machine)body={...body,machine:toS(body.machine)};const u=API+'?payload='+encodeURIComponent(JSON.stringify(body))+'&_='+Date.now();const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);const j=JSON.parse(await r.text());if(j.data&&Array.isArray(j.data))j.data=j.data.map(fromS);return j}
-function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function fh(s){if(!s)return'';try{if(/^\d{2}:\d{2}$/.test(s))return s;const d=new Date(s);if(!isNaN(d))return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');return s.replace(/.*?(\d{2}):(\d{2}).*$/,':')}catch{return s}}
-function fd(s){if(!s)return'';try{if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}const d=new Date(s);if(!isNaN(d)){const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yy=d.getFullYear();return dd+'/'+mm+'/'+yy}return s.replace(/\s+\d{2}:\d{2}:\d{2}.*/,'')}catch{return s}}
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-function mc(s){return s==='Ok - revisada'?'mb-ok':s==='Em andamento'?'mb-prog':s==='Com defeito'?'mb-df':'mb-ok'}
+/* ==========================================================================
+   MMC LOCAÇÕES — PAINEL DE MÁQUINAS
+   ========================================================================== */
+
+// ── Config ──
+const API = 'https://script.google.com/macros/s/AKfycbzUBhDAvIwVzRWpCZyI_2zRDKvB0VCs0gdosIen6l0_2vqaCUOgjsr97CVoU5ilflLWAg/exec';
+const SCOLS = ['Retornando', 'Manutenção', 'Disponível', 'Reservado'];
+const EDIT_PASS = 'mmc2026';
+
+// ── State ──
+let M = [], histData = [], dragId = null, editId = null, cAction = null, rId = null;
+let curTab = 'status', dropping = false;
+let isEditor = sessionStorage.getItem('mmc_editor') === 'true';
+
+// ── Mappings ──
+const S2E = { retornando:'Retornando', manutencao:'Manutenção', disponivel:'Disponível', reservado:'Reservado', locada:'Locada', obra_mmc:'Obra MMC', venda:'Venda', reforma:'Reforma', a_decidir:'A decidir' };
+const E2S = {}; Object.entries(S2E).forEach(([k,v]) => E2S[v] = k);
+const M2E = { ok_revisada:'Ok - revisada', em_andamento:'Em andamento', com_defeito:'Com defeito' };
+const E2M = {}; Object.entries(M2E).forEach(([k,v]) => E2M[v] = k);
+const MARCA_LOGO = { JLG:'logo-jlg.png', Haulotte:'logo-haulotte.png', Genie:'logo-genie.png', Manitou:'logo-manitou.png' };
+const MARCA_BG = { JLG:'#F26522', Haulotte:'#1a1a1a', Genie:'#0057A0', Manitou:'#CC0000' };
+
+// ── Utils ──
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fd(s) {
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+  try { const d=new Date(s); if(!isNaN(d)) return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); } catch{}
+  return s;
+}
+function mc(s) { return s==='Ok - revisada'?'mb-ok':s==='Em andamento'?'mb-prog':s==='Com defeito'?'mb-df':'mb-ok'; }
+
+// ── UI Helpers ──
 let lt=null;
-function sL(on){const b=document.getElementById('loadBar'),s=document.getElementById('spin');if(on){b.className='on';s.className='on'}else{b.className='done';s.className='';clearTimeout(lt);lt=setTimeout(()=>b.className='',400)}}
-function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className='show '+t;setTimeout(()=>e.classList.remove('show'),3400)}
-function switchTab(t){curTab=t;document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('.tcont').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));render()}
-function filt(list){const q=document.getElementById('sI').value.toLowerCase().trim(),m=document.getElementById('fS').value;return list.filter(x=>{const qs=!q||(x.name||'').toLowerCase().includes(q)||(x.cc||'').toLowerCase().includes(q)||(x.nc||'').toLowerCase().includes(q)||(x.modelo||'').toLowerCase().includes(q)||(x.serie||'').toLowerCase().includes(q)||(x.marca||'').toLowerCase().includes(q);const ms=!m||x.ms===m;const fm=document.getElementById("fMarcaFilter").value;const fmr=!fm||x.marca===fm;return qs&&ms&&fmr})}
-function isMarcelo(m){const c=((m.cc||'')+' '+(m.nc||'')).toLowerCase();return c.includes('obra mmc')||c.includes('mmc metalica')||c.includes('obras mmc')||c.includes('mmc metálica')}
-function render(){
-  const marc=M.filter(m=>m.column==='Obra MMC'||isMarcelo(m));const vrMaq=M.filter(m=>m.column==='Venda'||m.column==='Reforma'||m.column==='A decidir');
+function setLoading(on) {
+  const b=document.getElementById('loadBar'), s=document.getElementById('spin');
+  if(on){b.className='on';s.className='on'}
+  else{b.className='done';s.className='';clearTimeout(lt);lt=setTimeout(()=>b.className='',400)}
+}
+function toast(msg,type='ok') {
+  const e=document.getElementById('toast');e.textContent=msg;e.className='show '+type;
+  setTimeout(()=>e.classList.remove('show'),3400);
+}
+
+// ── Editor Mode ──
+function checkEditor() {
+  if(isEditor) return true;
+  const p=prompt('Digite a senha de edição:');
+  if(p===EDIT_PASS){isEditor=true;sessionStorage.setItem('mmc_editor','true');applyMode();toast('Modo editor ativado!');return true}
+  toast('Senha incorreta.','err');return false;
+}
+function applyMode() {
+  document.body.classList.toggle('editor-mode',isEditor);
+  const btn=document.getElementById('modeBtn');
+  btn.textContent=isEditor?'Editor':'Visualização';
+  btn.style.background=isEditor?'#10b981':'rgba(255,255,255,.15)';
+}
+
+// ── Data Conversion ──
+function fromS(m) {
+  return { id:m.id, name:m.maquina||'', column:S2E[m.status]||'Disponível',
+    cc:m.cliente_atual||'', nc:m.proximo_cliente||'', dr:m.data_retorno||'',
+    dn:m.data_proxima_locacao||'', dl:m.data_locacao||'',
+    ms:M2E[m.manutencao]||'Ok - revisada', modelo:m.modelo||'',
+    serie:m.numero_serie||'', marca:m.marca||'', obs:m.observacoes||'' };
+}
+function toS(m) {
+  return { id:m.id, maquina:m.name||'', status:E2S[m.column]||'disponivel',
+    cliente_atual:m.cc||'', proximo_cliente:m.nc||'', data_retorno:m.dr||'',
+    data_proxima_locacao:m.dn||'', data_locacao:m.dl||'',
+    manutencao:E2M[m.ms]||'ok_revisada', modelo:m.modelo||'',
+    numero_serie:m.serie||'', marca:m.marca||'', observacoes:m.obs||'' };
+}
+
+// ── API ──
+function clearCache() { sessionStorage.removeItem('mmc_cache'); }
+async function api(body) {
+  if(body.action && body.action!=='getAll' && body.action!=='getHistory') clearCache();
+  if(body.machine) body={...body, machine:toS(body.machine)};
+  const url=API+'?payload='+encodeURIComponent(JSON.stringify(body))+'&_='+Date.now();
+  const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status);
+  const j=JSON.parse(await r.text());
+  if(j.data && Array.isArray(j.data)) j.data=j.data.map(fromS);
+  return j;
+}
+
+// ── Tabs ──
+function switchTab(t) {
+  curTab=t;
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  document.querySelectorAll('.tcont').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));
+  if(t==='historico') renderHist(); else render();
+}
+
+// ── Marca Badge ──
+function marcaHTML(marca) {
+  const logo=MARCA_LOGO[marca];
+  if(logo) return '<img src="'+logo+'" alt="'+esc(marca)+'" style="height:28px;object-fit:contain;max-width:60px">';
+  return '<span style="color:#fff;font-size:9px;font-weight:500;letter-spacing:.5px">'+esc(marca||'?')+'</span>';
+}
+function marcaBadge(marca) {
+  const bg=MARCA_BG[marca]||'#666';
+  return '<div style="width:68px;height:36px;border-radius:6px;background:'+bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px">'+marcaHTML(marca)+'</div>';
+}
+
+// ── Filter ──
+function filt(list) {
+  const q=document.getElementById('sI').value.toLowerCase().trim();
+  const mF=document.getElementById('fS').value;
+  const marcaF=document.getElementById('fMarcaFilter').value;
+  return list.filter(x=>{
+    const qs=!q||[x.name,x.cc,x.nc,x.modelo,x.serie,x.marca,x.obs].some(v=>(v||'').toLowerCase().includes(q));
+    return qs && (!mF||x.ms===mF) && (!marcaF||x.marca===marcaF);
+  });
+}
+function isMarcelo(m) {
+  const c=((m.cc||'')+' '+(m.nc||'')).toLowerCase();
+  return c.includes('obra mmc')||c.includes('mmc metalica')||c.includes('obras mmc')||c.includes('mmc metálica');
+}
+
+// ── SVG Icons ──
+const IC = {
+  hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+  ret:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+  ren:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>'
+};
+
+// ── Render: Kanban Card ──
+function cardH(m, showConfirm, showManut) {
+  const title=esc(m.modelo||m.name||'—');
+  const espelho=m._espelho?'<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#dbeafe;color:#1e40af;margin-left:6px">Locada</span>':'';
+  const manutBadge=(showManut&&m.ms)?'<span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span>':'';
+  const lbl1=m.column==='Reservado'?'Reservado para':(m.column==='Manutenção'||m.column==='Disponível')?'Último Cliente':'Cliente Atual';
+  const lbl2=m.column==='Reservado'?'Data Entrega':'Próximo Cliente';
+  const val2=m.column==='Reservado'?(m.dn?fd(m.dn):'—'):esc(m.nc||'—');
+  const obsHtml=m.column==='Manutenção'&&m.obs?'<div class="cf" style="grid-column:1/-1"><label>Observações</label><span style="font-size:11px">'+esc(m.obs)+'</span></div>':'';
+  const cBtn=showConfirm?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega">'+IC.check+'</button>':'';
+  return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div class="card-top">'
+    +(m.marca?marcaBadge(m.marca):'')
+    +'<div class="card-info"><div class="cname">'+title+espelho+'</div>'
+    +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
+    +'</div><div class="cbtns">'+cBtn
+    +'<button class="cb cb-h" onclick="event.stopPropagation();showMaqHist(\''+esc(m.id)+'\')" title="Histórico">'+IC.hist+'</button>'
+    +'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar">'+IC.edit+'</button>'
+    +'<button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover">'+IC.del+'</button>'
+    +'</div></div>'+manutBadge
+    +'<div class="cgrid">'
+    +'<div class="cf"><label>'+lbl1+'</label><span class="'+(m.cc?'':'nil')+'">'+esc(m.cc||'—')+'</span></div>'
+    +'<div class="cf"><label>'+lbl2+'</label><span class="'+(val2==='—'?'nil':'')+'">'+val2+'</span></div>'
+    +'<div class="cf"><label>Retorno</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
+    +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
+    +obsHtml+'</div></div>';
+}
+
+// ── Render: Locada Card (BUG FIX #3: added Hist button) ──
+function locH(m) {
+  const title=esc(m.modelo||m.name||'—');
+  return '<div class="lcard"><div class="lcard-top">'
+    +(m.marca?marcaBadge(m.marca):'')
+    +'<div class="lcard-info"><div class="cname">'+title+'</div>'
+    +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
+    +'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'
+    +'<div class="cgrid">'
+    +'<div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div>'
+    +'<div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div>'
+    +'<div class="cf"><label>Data Locação</label><span>'+(m.dl?fd(m.dl):'—')+'</span></div>'
+    +'<div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
+    +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
+    +'</div>'
+    +'<div class="lacts">'
+    +'<button class="abtn ret" onclick="iRet(\''+esc(m.id)+'\')">'+IC.ret+'Retorno</button>'
+    +'<button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')">'+IC.ren+'Renovar</button>'
+    +'<button class="abtn hist" onclick="showMaqHist(\''+esc(m.id)+'\')">'+IC.hist+'Hist.</button>'
+    +'<button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')">'+IC.edit+'Editar</button>'
+    +'</div></div>';
+}
+
+// ── Render: Obra MMC Card (BUG FIX #3: added Hist button) ──
+function marcH(m) {
+  const title=esc(m.modelo||m.name||'—');
+  return '<div class="lcard lcard-gold"><div class="lcard-top">'
+    +(m.marca?marcaBadge(m.marca):'')
+    +'<div class="lcard-info"><div class="cname">'+title+'</div>'
+    +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
+    +'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'
+    +'<div class="cgrid">'
+    +'<div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div>'
+    +'<div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div>'
+    +'<div class="cf"><label>Data Locação</label><span>'+(m.dl?fd(m.dl):'—')+'</span></div>'
+    +'<div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
+    +'</div>'
+    +'<div class="lacts">'
+    +'<button class="abtn ret" onclick="iRetM(\''+esc(m.id)+'\')">'+IC.ret+'Retorno</button>'
+    +'<button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')">'+IC.ren+'Renovar</button>'
+    +'<button class="abtn hist" onclick="showMaqHist(\''+esc(m.id)+'\')">'+IC.hist+'Hist.</button>'
+    +'<button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')">'+IC.edit+'Editar</button>'
+    +'</div></div>';
+}
+
+// ── Render: Venda/Reforma Card (BUG FIX #2: cards now render) ──
+function vrCardHtml(m) {
+  const title=esc(m.modelo||m.name||'—');
+  const bc=m.column==='Venda'?'vr-venda':m.column==='Reforma'?'vr-reforma':'vr-decidir';
+  return '<div class="lcard"><div class="lcard-top">'
+    +(m.marca?marcaBadge(m.marca):'')
+    +'<div class="lcard-info"><div class="cname">'+title+'</div>'
+    +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
+    +'</div><span class="vr-badge '+bc+'">'+esc(m.column)+'</span></div>'
+    +(m.obs?'<div style="background:var(--bg);padding:8px 10px;border-radius:8px;font-size:12px;color:var(--text);margin-bottom:8px">'+esc(m.obs)+'</div>':'')
+    +'<div class="lacts">'
+    +'<button class="abtn hist" onclick="showMaqHist(\''+esc(m.id)+'\')">'+IC.hist+'Hist.</button>'
+    +'<button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')">'+IC.edit+'Editar</button>'
+    +'</div></div>';
+}
+
+// ── Main Render ──
+function render() {
+  const marc=M.filter(m=>m.column==='Obra MMC'||isMarcelo(m));
+  const vrMaq=M.filter(m=>m.column==='Venda'||m.column==='Reforma'||m.column==='A decidir');
   const locRetornando=M.filter(m=>m.column==='Locada'&&!isMarcelo(m)&&m.dr).map(m=>({...m,column:'Retornando',_espelho:true}));
-  const sm=[...M.filter(m=>m.column!=='Locada'&&m.column!=='Obra MMC'&&m.column!=='Venda'&&m.column!=='Reforma'&&m.column!=='A decidir'&&!isMarcelo(m)),...locRetornando],lm=M.filter(m=>m.column==='Locada'&&!isMarcelo(m));
+  const sm=[...M.filter(m=>m.column!=='Locada'&&m.column!=='Obra MMC'&&m.column!=='Venda'&&m.column!=='Reforma'&&m.column!=='A decidir'&&!isMarcelo(m)),...locRetornando];
+  const lm=M.filter(m=>m.column==='Locada'&&!isMarcelo(m));
+
   document.getElementById('dC').textContent=M.filter(m=>m.ms==='Com defeito').length;
   document.getElementById('tcS').textContent=sm.length;
   document.getElementById('tcL').textContent=lm.length;
-  document.getElementById('tcM').textContent=marc.length;document.getElementById('tcVR').textContent=vrMaq.length;
+  document.getElementById('tcM').textContent=marc.length;
+  document.getElementById('tcVR').textContent=vrMaq.length;
+
+  // Kanban
   const sf=filt(sm);
-  SCOLS.forEach(col=>{const items=sf.filter(m=>m.column===col);document.getElementById('cn-'+col).textContent=items.length;const bd=document.getElementById('bd-'+col);if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}bd.innerHTML=items.map(m=>cardH(m,col==='Reservado',col==='Retornando'||col==='Manutenção')).join('');items.forEach(m=>bindD(bd.querySelector('[data-id="'+m.id+'"]'),m.id))});
-  const lf=filt(lm),g=document.getElementById('lGrid');
-  if(!lf.length){g.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina locada</div>'}
-  else{g.innerHTML=lf.map(locH).join('')}
-  const mf=filt(marc),mg=document.getElementById('mGrid');
-  if(!mf.length){mg.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina nas obras MMC Metálica da MMC Metálica</div>'}
-  else{mg.innerHTML=mf.map(marcH).join('')}
+  SCOLS.forEach(col=>{
+    const items=sf.filter(m=>m.column===col);
+    document.getElementById('cn-'+col).textContent=items.length;
+    const bd=document.getElementById('bd-'+col);
+    if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}
+    bd.innerHTML=items.map(m=>cardH(m,col==='Reservado',col==='Retornando'||col==='Manutenção')).join('');
+    items.forEach(m=>{const el=bd.querySelector('[data-id="'+m.id+'"]');if(el)bindDrag(el,m.id)});
+  });
+
+  // Locadas
+  const lf=filt(lm);
+  document.getElementById('lGrid').innerHTML=lf.length?lf.map(locH).join(''):'<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina locada</div>';
+
+  // Obras MMC
+  const mf=filt(marc);
+  document.getElementById('mGrid').innerHTML=mf.length?mf.map(marcH).join(''):'<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina nas obras MMC Metálica</div>';
+
+  // Venda/Reforma (BUG FIX #2)
+  const vf=filt(vrMaq);
+  document.getElementById('vrGrid').innerHTML=vf.length?vf.map(vrCardHtml).join(''):'<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina em venda/reforma</div>';
 }
-function cardH(m,showC,showManut){
-  const espelho=m._espelho?'<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#dbeafe;color:#1e40af;margin-left:6px">Locada</span>':'';
-  const manutBadge=(showManut&&m.ms)?'<span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span>':'';
-  const cardTitle=m.modelo?esc(m.modelo):(esc(m.name||'—'));
-  const cb=showC?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></button>':'';
-  return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+(m.marca?marcaBadge(m.marca):'')+'<div style="flex:1;min-width:0"><div class="cname">'+cardTitle+espelho+'</div>'+(m.serie?'<div style="font-size:11px;color:var(--muted)">Série: '+esc(m.serie)+'</div>':'')+'</div><div class="cbtns">'+cb+'<button class="cb cb-h" onclick="event.stopPropagation();showMaqHist(\''+esc(m.id)+'\')" title="Histórico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button><button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div>'+manutBadge+''+(function(){
-    var lbl1=m.column==='Reservado'?'Reservado para':m.column==='Manutenção'||m.column==='Disponível'?'Último Cliente':'Cliente Atual';
-    var lbl2=m.column==='Reservado'?'Data Entrega':'Próximo Cliente';
-    var val2=m.column==='Reservado'?(m.dn?fd(m.dn):'—'):esc(m.nc||'—');
-    var obsHtml=m.column==='Manutenção'&&m.obs?'<div class="cf" style="grid-column:1/-1"><label>Observações</label><span style="font-size:11px">'+esc(m.obs)+'</span></div>':'';
-    return '<div class="cgrid"><div class="cf"><label>'+lbl1+'</label><span class="'+(m.cc?'':'nil')+'">'+esc(m.cc||'—')+'</span></div><div class="cf"><label>'+lbl2+'</label><span class="'+(val2==='—'?'nil':'')+'">'+val2+'</span></div><div class="cf"><label>Retorno</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div><div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'+obsHtml+'</div>';
-  }())+'</div>'}
-function locH(m){
-  const locTitle=m.modelo?esc(m.modelo):(esc(m.name||'—'));
-  return '<div class="lcard"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+(m.marca?marcaBadge(m.marca):'')+'<div style="flex:1"><div class="cname">'+locTitle+'</div>'+(m.serie?'<div style="font-size:11px;color:var(--muted)">Série: '+esc(m.serie)+'</div>':'')+'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'+'<div class="cgrid"><div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div><div class="cf"><label>Data Locação</label><span>'+(m.dl?fd(m.dl):'—')+'</span></div><div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div></div><div class="cgrid" style="margin-top:6px"><div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div><div class="cf"></div></div><div class="lacts"><button class="abtn ret" onclick="iRet(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Retorno</button><button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Renovar</button><button class="abtn" style="color:#7c3aed;border-color:#ede9fe;background:#f5f3ff" onclick="showMaqHist(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Hist.</button><button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar</button></div></div>'}
-function marcH(m){
-  const mTitle=m.modelo?esc(m.modelo):(esc(m.name||'—'));
-  return '<div class="lcard" style="border-left:3px solid var(--gold)"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+(m.marca?marcaBadge(m.marca):'')+'<div style="flex:1"><div class="cname">'+mTitle+'</div>'+(m.serie?'<div style="font-size:11px;color:var(--muted)">Série: '+esc(m.serie)+'</div>':'')+'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'+'<div class="cgrid"><div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div><div class="cf"><label>Data Locação</label><span>'+(m.dn?fd(m.dn):'—')+'</span></div><div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div></div><div class="lacts"><button class="abtn ret" onclick="iRetM(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Retorno</button><button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Renovar</button><button class="abtn" style="color:#7c3aed;border-color:#ede9fe;background:#f5f3ff" onclick="showMaqHist(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Hist.</button><button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar</button></div></div>'}
-function vrCardHtml(m){
-  var statusColor=m.column==='Venda'?'background:#fee2e2;color:#991b1b':m.column==='Reforma'?'background:#fef3c7;color:#92400e':'background:#ede9fe;color:#5b21b6';
-  return '<div class="lcard"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+(m.marca?marcaBadge(m.marca):'')+'<div style="flex:1"><div class="cname">'+esc(m.modelo||m.name||'—')+'</div>'+(m.serie?'<div style="font-size:11px;color:var(--muted)">Série: '+esc(m.serie)+'</div>':'')+'</div><span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;'+statusColor+'">'+esc(m.column)+'</span></div>'+(m.obs?'<div style="background:var(--bg);padding:8px 10px;border-radius:8px;font-size:12px;color:var(--text);margin-bottom:8px">'+esc(m.obs)+'</div>':'')+'<div class="lacts"><button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar</button></div></div>'}
-function bindD(el,id){el.addEventListener('dragstart',e=>{if(!isEditor){e.preventDefault();return}dragId=id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'});el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragId=null})}
-SCOLS.forEach(col=>{const bd=document.getElementById('bd-'+col);bd.addEventListener('dragover',e=>{e.preventDefault();bd.classList.add('over')});bd.addEventListener('dragleave',()=>bd.classList.remove('over'));bd.addEventListener('drop',async e=>{e.preventDefault();bd.classList.remove('over');if(!dragId||dropping)return;const mid=dragId;dragId=null;dropping=true;const m=M.find(x=>x.id===mid);if(!m||m.column===col){dropping=false;return}const old=m.column;m.column=col;render();sL(true);try{await api({action:'update',machine:m});toast('Movida para "'+col+'"');await loadAll()}catch(er){console.error(er);m.column=old;render();toast('Erro ao salvar.','err')}finally{sL(false);dropping=false}})});
-function showCo(title,msg,btnText,btnColor,iconBg,action){cAction=action;document.getElementById('cT').textContent=title;document.getElementById('cM').textContent=msg;document.getElementById('cOk').textContent=btnText;document.getElementById('cOk').style.background=btnColor;document.getElementById('cIcon').style.background=iconBg;document.getElementById('cBg').classList.add('open')}
+
+// ── Drag & Drop ──
+function bindDrag(el,id) {
+  el.addEventListener('dragstart',e=>{if(!isEditor){e.preventDefault();return}dragId=id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'});
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragId=null});
+}
+SCOLS.forEach(col=>{
+  const bd=document.getElementById('bd-'+col);
+  bd.addEventListener('dragover',e=>{e.preventDefault();bd.classList.add('over')});
+  bd.addEventListener('dragleave',()=>bd.classList.remove('over'));
+  bd.addEventListener('drop',async e=>{
+    e.preventDefault();bd.classList.remove('over');
+    if(!dragId||dropping)return;
+    const mid=dragId;dragId=null;dropping=true;
+    const m=M.find(x=>x.id===mid);
+    if(!m||m.column===col){dropping=false;return}
+    const old=m.column;m.column=col;render();setLoading(true);
+    try{await api({action:'update',machine:m});toast('Movida para "'+col+'"');await loadAll()}
+    catch(er){console.error(er);m.column=old;render();toast('Erro ao salvar.','err')}
+    finally{setLoading(false);dropping=false}
+  });
+});
+
+// ── Confirm Dialog ──
+function showCo(title,msg,btnText,btnColor,iconBg,action) {
+  cAction=action;
+  document.getElementById('cT').textContent=title;
+  document.getElementById('cM').textContent=msg;
+  document.getElementById('cOk').textContent=btnText;
+  document.getElementById('cOk').style.background=btnColor;
+  document.getElementById('cIcon').style.background=iconBg;
+  document.getElementById('cBg').classList.add('open');
+}
 function closeCo(){cAction=null;document.getElementById('cBg').classList.remove('open')}
-function cEnt(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Confirmar Entrega','Confirmar que "'+m.name+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{sL(true);try{m.column='Locada';await api({action:'update',machine:m});toast(m.name+' — Entrega confirmada!');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}})}
-function iRet(id){var m=M.find(function(x){return x.id===id});if(!m)return;var dr=prompt('Data prevista de retorno (dd/mm/aaaa):');if(dr===null)return;if(dr){var p=dr.split('/');if(p.length===3)m.dr=p[2]+'-'+p[1]+'-'+p[0]}showCo('Iniciar Retorno','Iniciar retorno de "'+(m.modelo||m.name)+'"? Voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async function(){sL(true);try{m.column='Retornando';await api({action:'update',machine:m});toast((m.modelo||m.name)+' — Retorno iniciado!');await loadAll();switchTab('status')}catch(e){toast('Erro.','err')}finally{sL(false)}})}
-function iRetM(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Retorno da Obra','Iniciar retorno de "'+m.name+'" da obra da MMC Metálica? O campo cliente será limpo e ela voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{sL(true);try{m.column='Retornando';m.cc='';m.nc='';await api({action:'update',machine:m});toast(m.name+' — Retorno da obra iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{sL(false)}})}
-function aDel(id){const m=M.find(x=>x.id===id);if(!m)return;showCo('Remover Máquina','Remover "'+m.name+'"? Esta ação não pode ser desfeita.','Remover','#ef4444','#fee2e2',async()=>{sL(true);try{await api({action:'delete',id});toast('Máquina removida.');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}})}
-function oRen(id){const m=M.find(x=>x.id===id);if(!m)return;rId=id;document.getElementById('rN').value=m.name;document.getElementById('rC').value=m.cc||'';document.getElementById('rDS').value='';document.getElementById('rDE').value='';document.getElementById('rBg').classList.add('open')}
+
+// ── Actions ──
+function cEnt(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;
+  const label=m.modelo||m.name||id;
+  showCo('Confirmar Entrega','Confirmar que "'+label+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{
+    setLoading(true);try{m.column='Locada';await api({action:'update',machine:m});toast(label+' — Entrega confirmada!');await loadAll()}catch{toast('Erro.','err')}finally{setLoading(false)}
+  });
+}
+function iRet(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;
+  const label=m.modelo||m.name||id;
+  const dr=prompt('Data prevista de retorno (dd/mm/aaaa):');
+  if(dr===null)return;
+  if(dr){const p=dr.split('/');if(p.length===3)m.dr=p[2]+'-'+p[1]+'-'+p[0]}
+  showCo('Iniciar Retorno','Iniciar retorno de "'+label+'"? Voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{
+    setLoading(true);try{m.column='Retornando';await api({action:'update',machine:m});toast(label+' — Retorno iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{setLoading(false)}
+  });
+}
+function iRetM(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;
+  const label=m.modelo||m.name||id;
+  showCo('Retorno da Obra','Iniciar retorno de "'+label+'" da obra da MMC Metálica? O campo cliente será limpo.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{
+    setLoading(true);try{m.column='Retornando';m.cc='';m.nc='';await api({action:'update',machine:m});toast(label+' — Retorno da obra iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{setLoading(false)}
+  });
+}
+function aDel(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;
+  const label=m.modelo||m.name||id;
+  showCo('Remover Máquina','Remover "'+label+'"? Esta ação não pode ser desfeita.','Remover','#ef4444','#fee2e2',async()=>{
+    setLoading(true);try{await api({action:'delete',id});toast('Máquina removida.');await loadAll()}catch{toast('Erro.','err')}finally{setLoading(false)}
+  });
+}
+
+// ── Renew ──
+function oRen(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;rId=id;
+  document.getElementById('rN').value=m.modelo||m.name||'';
+  document.getElementById('rC').value=m.cc||'';
+  document.getElementById('rDS').value='';document.getElementById('rDE').value='';
+  document.getElementById('rBg').classList.add('open');
+}
 function closeR(){document.getElementById('rBg').classList.remove('open');rId=null}
-async function doR(){const m=M.find(x=>x.id===rId);if(!m)return;const c=document.getElementById('rC').value.trim().toUpperCase();if(!c){toast('Informe o cliente.','err');return}m.cc=c;const ds=document.getElementById('rDS').value,de=document.getElementById('rDE').value;if(ds)m.dn=ds;if(de)m.dr=de;closeR();sL(true);try{await api({action:'update',machine:m});toast(m.name+' — Contrato renovado!');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}}
-function oModal(t){document.getElementById('mT').textContent=t;document.getElementById('mBg').classList.add('open');setTimeout(()=>document.getElementById('fModelo').focus(),50)}
+async function doR() {
+  const m=M.find(x=>x.id===rId);if(!m)return;
+  const c=document.getElementById('rC').value.trim().toUpperCase();
+  if(!c){toast('Informe o cliente.','err');return}
+  m.cc=c;
+  const ds=document.getElementById('rDS').value,de=document.getElementById('rDE').value;
+  if(ds)m.dl=ds;if(de)m.dr=de;
+  const label=m.modelo||m.name||'';closeR();setLoading(true);
+  try{await api({action:'update',machine:m});toast(label+' — Contrato renovado!');await loadAll()}
+  catch{toast('Erro.','err')}finally{setLoading(false)}
+}
+
+// ── Modal: Add/Edit ──
+function oModal(title){document.getElementById('mT').textContent=title;document.getElementById('mBg').classList.add('open');setTimeout(()=>document.getElementById('fModelo').focus(),50)}
 function cModal(){document.getElementById('mBg').classList.remove('open');editId=null}
-function oAdd(){editId=null;['fN','fCC','fNC','fModelo','fSerie'].forEach(i=>document.getElementById(i).value='');document.getElementById('fMarca').value='';['fDL','fDR','fDN'].forEach(i=>document.getElementById(i).value='');document.getElementById('fObs').value='';document.getElementById('fM').value='Ok - revisada';document.getElementById('fCol').value='Disponível';oModal('Nova Máquina')}
-function oEdit(id){const m=M.find(x=>x.id===id);if(!m)return;editId=id;document.getElementById('fModelo').value=m.modelo||'';document.getElementById('fSerie').value=m.serie||'';document.getElementById('fMarca').value=m.marca||'';document.getElementById('fN').value=m.name||'';document.getElementById('fCC').value=m.cc||'';document.getElementById('fNC').value=m.nc||'';document.getElementById('fDL').value=m.dl||'';document.getElementById('fDR').value=m.dr||'';document.getElementById('fDN').value=m.dn||'';document.getElementById('fObs').value=m.obs||'';document.getElementById('fM').value=m.ms||'Ok';document.getElementById('fCol').value=m.column||'Disponível';oModal('Editar Máquina')}
-async function save(){const n=document.getElementById('fN').value.trim();const mod=document.getElementById('fModelo').value.trim();const ser=document.getElementById('fSerie').value.trim();if(!mod&&!n){toast('Informe o modelo ou nome da máquina.','err');return}const d={name:n.toUpperCase(),modelo:document.getElementById('fModelo').value.trim().toUpperCase(),serie:document.getElementById('fSerie').value.trim().toUpperCase(),marca:document.getElementById('fMarca').value,cc:document.getElementById('fCC').value.trim().toUpperCase(),nc:document.getElementById('fNC').value.trim().toUpperCase(),dl:document.getElementById('fDL').value,dr:document.getElementById('fDR').value,dn:document.getElementById('fDN').value,ms:document.getElementById('fM').value,column:document.getElementById('fCol').value,obs:document.getElementById('fObs').value.trim().toUpperCase()};const ser2=document.getElementById('fSerie').value.trim();
-  if(ser2){const dup=M.find(x=>x.serie===ser2&&x.id!==editId);if(dup){toast('Nº Série "'+ser2+'" já existe: '+dup.modelo+' ('+dup.marca+')','err');return}}
-  const eid=editId;cModal();sL(true);try{if(eid){d.id=eid;await api({action:'update',machine:d});toast('Atualizada!')}else{d.id=uid();await api({action:'add',machine:d});toast('Adicionada!')}await loadAll()}catch{toast('Erro ao salvar.','err')}finally{sL(false)}}
-let histData=[];
-async function loadHist(){
+function oAdd() {
+  editId=null;
+  ['fN','fCC','fNC','fModelo','fSerie'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('fMarca').value='';
+  ['fDL','fDR','fDN'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('fObs').value='';
+  document.getElementById('fM').value='Ok - revisada';
+  document.getElementById('fCol').value='Disponível';
+  oModal('Nova Máquina');
+}
+function oEdit(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;editId=id;
+  document.getElementById('fModelo').value=m.modelo||'';
+  document.getElementById('fSerie').value=m.serie||'';
+  document.getElementById('fMarca').value=m.marca||'';
+  document.getElementById('fN').value=m.name||'';
+  document.getElementById('fCC').value=m.cc||'';
+  document.getElementById('fNC').value=m.nc||'';
+  document.getElementById('fDL').value=m.dl||'';
+  document.getElementById('fDR').value=m.dr||'';
+  document.getElementById('fDN').value=m.dn||'';
+  document.getElementById('fObs').value=m.obs||'';
+  document.getElementById('fM').value=m.ms||'Ok - revisada';
+  document.getElementById('fCol').value=m.column||'Disponível';
+  oModal('Editar Máquina');
+}
+async function save() {
+  const mod=document.getElementById('fModelo').value.trim();
+  const n=document.getElementById('fN').value.trim();
+  if(!mod&&!n){toast('Informe o modelo ou nome da máquina.','err');return}
+  const d={
+    name:n.toUpperCase(), modelo:mod.toUpperCase(),
+    serie:document.getElementById('fSerie').value.trim().toUpperCase(),
+    marca:document.getElementById('fMarca').value,
+    cc:document.getElementById('fCC').value.trim().toUpperCase(),
+    nc:document.getElementById('fNC').value.trim().toUpperCase(),
+    dl:document.getElementById('fDL').value,
+    dr:document.getElementById('fDR').value,
+    dn:document.getElementById('fDN').value,
+    ms:document.getElementById('fM').value,
+    column:document.getElementById('fCol').value,
+    obs:document.getElementById('fObs').value.trim().toUpperCase()
+  };
+  if(d.serie){const dup=M.find(x=>x.serie===d.serie&&x.id!==editId);if(dup){toast('Nº Série "'+d.serie+'" já existe: '+dup.modelo+' ('+dup.marca+')','err');return}}
+  const eid=editId;cModal();setLoading(true);
+  try{
+    if(eid){d.id=eid;await api({action:'update',machine:d});toast('Atualizada!')}
+    else{d.id=uid();await api({action:'add',machine:d});toast('Adicionada!')}
+    await loadAll();
+  }catch{toast('Erro ao salvar.','err')}finally{setLoading(false)}
+}
+
+// ── History (BUG FIX #1: text now displays correctly) ──
+async function loadHist() {
   try{const r=await api({action:'getHistory'});histData=Array.isArray(r?.data)?r.data:[]}catch{histData=[]}
 }
-function renderHist(){
-  var grid=document.getElementById('histGrid');
+function parseDate(r) {
+  const raw=r.data||r.timestamp||'';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){const p=raw.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+  if(raw){try{const d=new Date(raw);if(!isNaN(d))return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}catch{}}
+  return '';
+}
+function parseTime(r) {
+  const raw=r.hora||'';
+  if(/^\d{2}:\d{2}$/.test(raw)) return raw;
+  if(raw){
+    try{const d=new Date(raw);if(!isNaN(d))return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}catch{}
+    const match=String(raw).match(/(\d{1,2}):(\d{2})/);
+    if(match)return match[1].padStart(2,'0')+':'+match[2];
+  }
+  if(r.timestamp){try{const ts=new Date(r.timestamp);if(!isNaN(ts))return String(ts.getHours()).padStart(2,'0')+':'+String(ts.getMinutes()).padStart(2,'0')}catch{}}
+  return '';
+}
+function renderHist() {
+  const grid=document.getElementById('histGrid');
   if(!histData||!histData.length){grid.innerHTML='<div class="cempty" style="padding:40px">Nenhum registro encontrado</div>';return}
-  var maqF=document.getElementById('hMaqFilter').value;
-  var actF=document.getElementById('hActionFilter').value;
-  var list=[];
-  for(var i=0;i<histData.length;i++){
-    var r=histData[i];
+  const maqF=document.getElementById('hMaqFilter').value;
+  const actF=document.getElementById('hActionFilter').value;
+  const dateFrom=document.getElementById('hDateFrom').value;
+  const dateTo=document.getElementById('hDateTo').value;
+  let list=[];
+  for(let i=0;i<histData.length;i++){
+    const r=histData[i];
     if(maqF&&r.maquina_id!==maqF)continue;
     if(actF&&r.tipo!==actF)continue;
+    if(dateFrom||dateTo){
+      const raw=r.data||r.timestamp||'';let itemDate='';
+      if(/^\d{4}-\d{2}-\d{2}/.test(raw))itemDate=raw.substring(0,10);
+      else if(raw){try{const d=new Date(raw);if(!isNaN(d))itemDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}catch{}}
+      if(dateFrom&&itemDate<dateFrom)continue;
+      if(dateTo&&itemDate>dateTo)continue;
+    }
     list.push(r);
   }
   list.reverse();
   if(!list.length){grid.innerHTML='<div class="cempty" style="padding:40px">Nenhum registro encontrado</div>';return}
-  var html='';
-  for(var i=0;i<list.length;i++){
-    var r=list[i];
-    var dt='';
-    try{var dd=new Date(r.data||r.timestamp);if(!isNaN(dd))dt=String(dd.getDate()).padStart(2,'0')+'/'+String(dd.getMonth()+1).padStart(2,'0')+'/'+dd.getFullYear()}catch(e){}
-    var hr='';
-    try{var hd=new Date(r.hora||r.timestamp);if(!isNaN(hd))hr=String(hd.getHours()).padStart(2,'0')+':'+String(hd.getMinutes()).padStart(2,'0')}catch(e){}
-    if(!hr&&r.timestamp){try{var ts=new Date(r.timestamp);hr=String(ts.getHours()).padStart(2,'0')+':'+String(ts.getMinutes()).padStart(2,'0')}catch(e){}}
-    var nm=r.maquina_nome||r.maquina_id||'';
-    var mObj=M.find(function(x){return x.id===r.maquina_id});
+  let html='';
+  for(let i=0;i<list.length;i++){
+    const r=list[i];
+    const dt=parseDate(r);
+    const hr=parseTime(r);
+    let nm=r.maquina_nome||'';
+    const mObj=M.find(x=>x.id===r.maquina_id);
     if(mObj)nm=mObj.modelo||mObj.name||nm;
-    var desc=r.descricao||'';
-    var dias=r.dias_no_status?'<span class="hist-time">'+r.dias_no_status+' dias</span>':'';
-    var bgColor=r.tipo==='status'?'#dbeafe':r.tipo==='cliente'?'#d1fae5':'#fef3c7';
-    var fgColor=r.tipo==='status'?'#1e40af':r.tipo==='cliente'?'#065f46':'#92400e';
-    var svgPath=r.tipo==='status'?'<polyline points="9 18 15 12 9 6"/>':r.tipo==='cliente'?'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>':'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>';
-    html+='<div class="hist-row">';
-    html+='<div class="hist-icon" style="background:'+bgColor+';color:'+fgColor+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+svgPath+'</svg></div>';
-    html+='<div class="hist-date"><b>'+dt+'</b><br>'+hr+'</div>';
-    html+='<div class="hist-body"><div class="hist-maq">'+esc(nm)+'</div><div class="hist-desc">'+esc(desc)+'</div></div>';
-    html+=dias;
-    html+='</div>';
+    if(!nm)nm=r.maquina_id||'';
+    const desc=r.descricao||'';
+    const dias=r.dias_no_status?'<span class="hist-time">'+esc(String(r.dias_no_status))+' dias</span>':'';
+    const bgColor=r.tipo==='status'?'#dbeafe':r.tipo==='cliente'?'#d1fae5':'#fef3c7';
+    const fgColor=r.tipo==='status'?'#1e40af':r.tipo==='cliente'?'#065f46':'#92400e';
+    const svgPath=r.tipo==='status'?'<polyline points="9 18 15 12 9 6"/>':r.tipo==='cliente'?'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>':'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>';
+    html+='<div class="hist-row">'
+      +'<div class="hist-icon" style="background:'+bgColor+';color:'+fgColor+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+svgPath+'</svg></div>'
+      +'<div class="hist-date"><b>'+esc(dt||'—')+'</b><br>'+esc(hr)+'</div>'
+      +'<div class="hist-body"><div class="hist-maq">'+esc(nm)+'</div><div class="hist-desc">'+esc(desc)+'</div></div>'
+      +dias+'</div>';
   }
   grid.innerHTML=html;
 }
-function showMaqHist(id){
-  switchTab('historico');
-  document.getElementById('hMaqFilter').value=id;
-  renderHist();
-}
-function populateHistFilter(){
+function showMaqHist(id){switchTab('historico');document.getElementById('hMaqFilter').value=id;renderHist()}
+function populateHistFilter() {
   const sel=document.getElementById('hMaqFilter');
   const opts=M.map(m=>({id:m.id,name:m.modelo?m.modelo+(m.serie?' - '+m.serie:''):(m.name||m.id)}));
   opts.sort((a,b)=>a.name.localeCompare(b.name));
   sel.innerHTML='<option value="">Todas as máquinas</option>'+opts.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.name)+'</option>').join('');
 }
-async function loadAll(){
+
+// ── Load All ──
+async function loadAll() {
   const cached=sessionStorage.getItem('mmc_cache');
-  if(cached){try{M=JSON.parse(cached);render();sL(true)}catch{}}else{sL(true)}
-  try{const r=await api({action:'getAll'});M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];sessionStorage.setItem('mmc_cache',JSON.stringify(M));render();populateHistFilter();loadHist().then(renderHist)}catch{if(!M.length)toast('Erro ao carregar.','err')}finally{sL(false)}}
+  if(cached){try{M=JSON.parse(cached);render();setLoading(true)}catch{}}else{setLoading(true)}
+  try{
+    const r=await api({action:'getAll'});
+    M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];
+    sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+    render();populateHistFilter();loadHist().then(renderHist);
+  }catch{if(!M.length)toast('Erro ao carregar.','err')}finally{setLoading(false)}
+}
+
+// ── Event Bindings ──
+document.getElementById('modeBtn').addEventListener('click',()=>{
+  if(!isEditor)checkEditor();
+  else{isEditor=false;sessionStorage.removeItem('mmc_editor');applyMode();toast('Modo visualização')}
+});
+document.getElementById('refreshBtn').addEventListener('click',()=>{loadAll();loadHist().then(renderHist);toast('Dados atualizados!')});
 document.getElementById('btnAdd').addEventListener('click',oAdd);
-document.getElementById('mX').addEventListener('click',cModal);
-document.getElementById('mC').addEventListener('click',cModal);
-document.getElementById('mS').addEventListener('click',save);
-document.getElementById('cCancel').addEventListener('click',closeCo);
-document.getElementById('cOk').addEventListener('click',()=>{const fn=cAction;closeCo();if(fn){fn()}});
+document.querySelectorAll('.tbtn').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
 document.getElementById('sI').addEventListener('input',render);
 document.getElementById('fS').addEventListener('change',render);
 document.getElementById('fMarcaFilter').addEventListener('change',render);
+document.getElementById('hMaqFilter').addEventListener('change',renderHist);
+document.getElementById('hActionFilter').addEventListener('change',renderHist);
+document.getElementById('hDateFrom').addEventListener('change',renderHist);
+document.getElementById('hDateTo').addEventListener('change',renderHist);
+document.getElementById('mX').addEventListener('click',cModal);
+document.getElementById('mC').addEventListener('click',cModal);
+document.getElementById('mS').addEventListener('click',save);
 document.getElementById('mBg').addEventListener('click',e=>{if(e.target===document.getElementById('mBg'))cModal()});
+document.getElementById('rX').addEventListener('click',closeR);
+document.getElementById('rCancel').addEventListener('click',closeR);
+document.getElementById('rSave').addEventListener('click',doR);
 document.getElementById('rBg').addEventListener('click',e=>{if(e.target===document.getElementById('rBg'))closeR()});
+document.getElementById('cCancel').addEventListener('click',closeCo);
+document.getElementById('cOk').addEventListener('click',()=>{const fn=cAction;closeCo();if(fn)fn()});
 document.getElementById('cBg').addEventListener('click',e=>{if(e.target===document.getElementById('cBg'))closeCo()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){cModal();closeR();closeCo()}});
+
+// ── Init ──
 applyMode();
 loadAll();
 </script>
