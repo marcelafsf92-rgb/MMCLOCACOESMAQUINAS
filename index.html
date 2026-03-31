@@ -306,7 +306,7 @@ function renderHist(){
   list.sort(function(a,b){var da=a.timestamp||'',db=b.timestamp||'';return da>db?-1:da<db?1:0});
   var grid=document.getElementById('histGrid');
   if(!list.length){grid.innerHTML='<div class="cempty" style="padding:40px">Nenhum registro encontrado</div>';return}
-  grid.innerHTML=list.map(function(rec){
+  console.log('renderHist list:',list.length,list[0]);grid.innerHTML=list.map(function(rec){console.log('rec:',rec.data,rec.maquina_nome,rec.descricao);
     var dt=fd(rec.data)||'';
     var hr=fh(rec.hora)||'';
     var maqObj=M.find(function(x){return x.id===rec.maquina_id});
