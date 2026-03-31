@@ -201,7 +201,7 @@ let lt=null;
 function sL(on){const b=document.getElementById('loadBar'),s=document.getElementById('spin');if(on){b.className='on';s.className='on'}else{b.className='done';s.className='';clearTimeout(lt);lt=setTimeout(()=>b.className='',400)}}
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className='show '+t;setTimeout(()=>e.classList.remove('show'),3400)}
 function switchTab(t){curTab=t;document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('.tcont').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));render()}
-function filt(list){const q=document.getElementById('sI').value.toLowerCase().trim(),m=document.getElementById('fS').value;return list.filter(x=>{const qs=!q||(x.name||'').toLowerCase().includes(q)||(x.cc||'').toLowerCase().includes(q)||(x.nc||'').toLowerCase().includes(q)||(x.modelo||'').toLowerCase().includes(q)||(x.serie||'').toLowerCase().includes(q)||(x.marca||'').toLowerCase().includes(q);const ms=!m||x.ms===m;return qs&&ms})}
+function filt(list){const q=document.getElementById('sI').value.toLowerCase().trim(),m=document.getElementById('fS').value;return list.filter(x=>{const qs=!q||(x.name||'').toLowerCase().includes(q)||(x.cc||'').toLowerCase().includes(q)||(x.nc||'').toLowerCase().includes(q)||(x.modelo||'').toLowerCase().includes(q)||(x.serie||'').toLowerCase().includes(q)||(x.marca||'').toLowerCase().includes(q);const ms=!m||x.ms===m;const fm=document.getElementById("fMarcaFilter").value;const fmr=!fm||x.marca===fm;return qs&&ms&&fmr})}
 function isMarcelo(m){const c=((m.cc||'')+' '+(m.nc||'')).toLowerCase();return c.includes('marcelo')&&c.includes('obra')}
 function render(){
   const marc=M.filter(m=>isMarcelo(m));
