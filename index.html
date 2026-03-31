@@ -211,7 +211,7 @@ function render(){
   document.getElementById('tcL').textContent=lm.length;
   document.getElementById('tcM').textContent=marc.length;
   const sf=filt(sm);
-  SCOLS.forEach(col=>{const items=sf.filter(m=>m.column===col);document.getElementById('cn-'+col).textContent=items.length;const bd=document.getElementById('bd-'+col);if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}bd.innerHTML=items.map(m=>cardH(m,col==='Reservado')).join('');items.forEach(m=>bindD(bd.querySelector('[data-id="'+m.id+'"]'),m.id))});
+  SCOLS.forEach(col=>{const items=sf.filter(m=>m.column===col);document.getElementById('cn-'+col).textContent=items.length;const bd=document.getElementById('bd-'+col);if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}bd.innerHTML=items.map(m=>cardH(m,col==='Reservado',col==='Retornando'||col==='Manutenção')).join('');items.forEach(m=>bindD(bd.querySelector('[data-id="'+m.id+'"]'),m.id))});
   const lf=filt(lm),g=document.getElementById('lGrid');
   if(!lf.length){g.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina locada</div>'}
   else{g.innerHTML=lf.map(locH).join('')}
@@ -219,8 +219,9 @@ function render(){
   if(!mf.length){mg.innerHTML='<div class="cempty" style="grid-column:1/-1;padding:40px">Nenhuma máquina nas obras do Marcelo</div>'}
   else{mg.innerHTML=mf.map(marcH).join('')}
 }
-function cardH(m,showC){
+function cardH(m,showC,showManut){
   const espelho=m._espelho?'<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#dbeafe;color:#1e40af;margin-left:6px">Locada</span>':'';
+  const manutBadge=(showManut&&m.ms)?'<span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span>':'';
   const cardTitle=m.modelo?esc(m.modelo):(esc(m.name||'—'));
   const cb=showC?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></button>':'';
   return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+(m.marca?marcaBadge(m.marca):'')+'<div style="flex:1;min-width:0"><div class="cname">'+cardTitle+espelho+'</div>'+(m.serie?'<div style="font-size:11px;color:var(--muted)">Série: '+esc(m.serie)+'</div>':'')+'</div><div class="cbtns">'+cb+'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div>'+manutBadge+'<div class="cgrid"><div class="cf"><label>Cliente Atual</label><span class="'+(m.cc?'':'nil')+'">'+esc(m.cc||'—')+'</span></div><div class="cf"><label>Próximo Cliente</label><span class="'+(m.nc?'':'nil')+'">'+esc(m.nc||'—')+'</span></div><div class="cf"><label>Retorno</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div><div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div></div></div>'}
