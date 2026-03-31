@@ -646,12 +646,14 @@ function toS(m) {
 // ── API ──
 function clearCache() { sessionStorage.removeItem('mmc_cache'); }
 async function api(body) {
-  if(body.action && body.action!=='getAll' && body.action!=='getHistory') clearCache();
+  const action=body.action;
+  if(action && action!=='getAll' && action!=='getHistory') clearCache();
   if(body.machine) body={...body, machine:toS(body.machine)};
   const url=API+'?payload='+encodeURIComponent(JSON.stringify(body))+'&_='+Date.now();
   const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status);
   const j=JSON.parse(await r.text());
-  if(j.data && Array.isArray(j.data)) j.data=j.data.map(fromS);
+  // Only convert machine data, NOT history records
+  if(action==='getAll' && j.data && Array.isArray(j.data)) j.data=j.data.map(fromS);
   return j;
 }
 
@@ -982,9 +984,12 @@ function parseTime(r) {
   const raw=r.hora||'';
   if(/^\d{2}:\d{2}$/.test(raw)) return raw;
   if(raw){
+    // Try regex first — more reliable for Sheets Date strings like "Sat Dec 30 1899 12:18:00 GMT-0306"
+    const match=String(raw).match(/(\d{1,2}):(\d{2}):\d{2}/);
+    if(match) return match[1].padStart(2,'0')+':'+match[2];
+    const match2=String(raw).match(/(\d{1,2}):(\d{2})/);
+    if(match2) return match2[1].padStart(2,'0')+':'+match2[2];
     try{const d=new Date(raw);if(!isNaN(d))return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}catch{}
-    const match=String(raw).match(/(\d{1,2}):(\d{2})/);
-    if(match)return match[1].padStart(2,'0')+':'+match[2];
   }
   if(r.timestamp){try{const ts=new Date(r.timestamp);if(!isNaN(ts))return String(ts.getHours()).padStart(2,'0')+':'+String(ts.getMinutes()).padStart(2,'0')}catch{}}
   return '';
