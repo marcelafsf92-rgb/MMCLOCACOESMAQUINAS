@@ -653,10 +653,23 @@ function applyMode() {
 }
 
 // ── Data Conversion ──
+/** Normalize any date format to YYYY-MM-DD for input[type=date] */
+function normDate(v) {
+  if(!v) return '';
+  const s=String(v).trim();
+  // Already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Try parsing as Date (handles "Fri Jun 06 2025 00:00:00 GMT-0300..." from Sheets)
+  try {
+    const d=new Date(s);
+    if(!isNaN(d)) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  } catch{}
+  return '';
+}
 function fromS(m) {
   return { id:m.id, name:m.maquina||'', column:S2E[m.status]||'Disponível',
-    cc:m.cliente_atual||'', nc:m.proximo_cliente||'', dr:m.data_retorno||'',
-    dn:m.data_proxima_locacao||'', dl:m.data_locacao||'',
+    cc:m.cliente_atual||'', nc:m.proximo_cliente||'', dr:normDate(m.data_retorno),
+    dn:normDate(m.data_proxima_locacao), dl:normDate(m.data_locacao),
     ms:M2E[m.manutencao]||'Ok - revisada', modelo:m.modelo||'',
     serie:m.numero_serie||'', marca:m.marca||'', obs:m.observacoes||'' };
 }
