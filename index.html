@@ -559,6 +559,31 @@
   <div class="mft"><button class="btnc" id="rCancel">Cancelar</button><button class="btns" id="rSave">Renovar</button></div>
 </div></div>
 
+<!-- Modal: Retorno -->
+<div class="mbg" id="retBg"><div class="modal" style="max-width:420px">
+  <div class="mhd">
+    <span class="mtitle" style="display:flex;align-items:center;gap:10px">
+      <span style="width:36px;height:36px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="width:20px;height:20px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </span>
+      Iniciar Retorno
+    </span>
+    <button class="mx" id="retX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="mbd">
+    <div class="fg"><label>Máquina</label><input id="retName" type="text" disabled style="font-weight:600;color:var(--navy)"></div>
+    <div class="fg">
+      <label>Data Prevista de Retorno</label>
+      <input id="retDate" type="date" style="font-size:15px;padding:11px 14px">
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.4;margin-top:-4px">A máquina será movida para <b>Status &gt; Retornando</b>. A data de locação será mantida.</p>
+  </div>
+  <div class="mft">
+    <button class="btnc" id="retCancel">Cancelar</button>
+    <button class="btns" id="retConfirm" style="background:#f59e0b;color:#78350f">Iniciar Retorno</button>
+  </div>
+</div></div>
+
 <!-- Confirm Dialog -->
 <div class="cobg" id="cBg"><div class="cobox">
   <div class="coicon" id="cIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>
@@ -869,15 +894,26 @@ function cEnt(id) {
     setLoading(true);try{m.column='Locada';await api({action:'update',machine:m});toast(label+' — Entrega confirmada!');await loadAll()}catch{toast('Erro.','err')}finally{setLoading(false)}
   });
 }
+let retId=null;
 function iRet(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
-  const label=m.modelo||m.name||id;
-  const dr=prompt('Data prevista de retorno (dd/mm/aaaa):');
-  if(dr===null)return;
-  if(dr){const p=dr.split('/');if(p.length===3)m.dr=p[2]+'-'+p[1]+'-'+p[0]}
-  showCo('Iniciar Retorno','Iniciar retorno de "'+label+'"? Voltará para Status > Retornando.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{
-    setLoading(true);try{m.column='Retornando';await api({action:'update',machine:m});toast(label+' — Retorno iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{setLoading(false)}
-  });
+  retId=id;
+  document.getElementById('retName').value=m.modelo||m.name||'';
+  document.getElementById('retDate').value=m.dr||'';
+  document.getElementById('retBg').classList.add('open');
+  setTimeout(()=>document.getElementById('retDate').focus(),100);
+}
+function closeRet(){document.getElementById('retBg').classList.remove('open');retId=null}
+async function doRet() {
+  const m=M.find(x=>x.id===retId);if(!m)return;
+  const label=m.modelo||m.name||retId;
+  const newDr=document.getElementById('retDate').value;
+  // Preserve data_locacao (dl) — only update dr and column
+  if(newDr) m.dr=newDr;
+  m.column='Retornando';
+  closeRet();setLoading(true);
+  try{await api({action:'update',machine:m});toast(label+' — Retorno iniciado!');await loadAll();switchTab('status')}
+  catch{toast('Erro.','err')}finally{setLoading(false)}
 }
 function iRetM(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
@@ -1082,10 +1118,14 @@ document.getElementById('rX').addEventListener('click',closeR);
 document.getElementById('rCancel').addEventListener('click',closeR);
 document.getElementById('rSave').addEventListener('click',doR);
 document.getElementById('rBg').addEventListener('click',e=>{if(e.target===document.getElementById('rBg'))closeR()});
+document.getElementById('retX').addEventListener('click',closeRet);
+document.getElementById('retCancel').addEventListener('click',closeRet);
+document.getElementById('retConfirm').addEventListener('click',doRet);
+document.getElementById('retBg').addEventListener('click',e=>{if(e.target===document.getElementById('retBg'))closeRet()});
 document.getElementById('cCancel').addEventListener('click',closeCo);
 document.getElementById('cOk').addEventListener('click',()=>{const fn=cAction;closeCo();if(fn)fn()});
 document.getElementById('cBg').addEventListener('click',e=>{if(e.target===document.getElementById('cBg'))closeCo()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){cModal();closeR();closeCo()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){cModal();closeR();closeRet();closeCo()}});
 
 // ── Init ──
 applyMode();
