@@ -136,12 +136,13 @@
 
 <div class="tbar"><div class="tbar-in">
   <div class="swrap"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="sinput" id="sI" type="text" placeholder="Buscar por nome ou cliente…"></div>
-  <select class="sel" id="fS"><option value="">Todas as manutenções</option><option value="Ok">Ok</option><option value="Em revisão">Em revisão</option><option value="Com defeito">Com defeito</option></select>
+  <select class="sel" id="fS"><option value="">Todas as manutenções</option><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select>
   <div class="bdef"><span class="dot"></span><span id="dC">0</span>&nbsp;com defeito</div>
 </div></div>
 
 <div class="tcont active" id="tab-status"><div class="bwrap"><div class="board">
   <div class="col col-ret"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Retornando</span></div><span class="ccnt" id="cn-Retornando">0</span></div><div class="cbody" id="bd-Retornando"></div></div>
+  <div class="col col-man"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Em Manutenção</span></div><span class="ccnt" id="cn-Manutenção">0</span></div><div class="cbody" id="bd-Manutenção"></div></div>
   <div class="col col-dis"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Disponível</span></div><span class="ccnt" id="cn-Disponível">0</span></div><div class="cbody" id="bd-Disponível"></div></div>
   <div class="col col-tra"><div class="ch"><div class="chl"><div class="cdot"></div><span class="ctitle">Reservado</span></div><span class="ccnt" id="cn-Reservado">0</span></div><div class="cbody" id="bd-Reservado"></div></div>
 </div></div></div>
@@ -157,7 +158,7 @@
   <div class="frow"><div class="fg"><label>Cliente Atual</label><input id="fCC" type="text" placeholder="Nome do cliente"></div><div class="fg"><label>Próximo Cliente</label><input id="fNC" type="text" placeholder="Próximo cliente"></div></div>
   <div class="fg"><label>Data da Locação</label><input id="fDL" type="date"></div>
       <div class="frow"><div class="fg"><label>Data de Retorno</label><input id="fDR" type="date"></div><div class="fg"><label>Data Próxima Locação</label><input id="fDN" type="date"></div></div>
-  <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok">Ok</option><option value="Em revisão">Em revisão</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Disponível">Disponível</option><option value="Reservado">Reservado</option><option value="Locada">Locada</option></select></div></div>
+  <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Manutenção">Em Manutenção</option><option value="Disponível">Disponível</option><option value="Reservado">Reservado</option><option value="Locada">Locada</option></select></div></div>
 </div>
 <div class="mft"><button class="btnc" id="mC">Cancelar</button><button class="btns" id="mS">Salvar</button></div></div></div>
 
@@ -178,23 +179,23 @@
 
 <script>
 const API='https://script.google.com/macros/s/AKfycbzUBhDAvIwVzRWpCZyI_2zRDKvB0VCs0gdosIen6l0_2vqaCUOgjsr97CVoU5ilflLWAg/exec';
-const SCOLS=['Retornando','Disponível','Reservado'];
+const SCOLS=['Retornando','Manutenção','Disponível','Reservado'];
 let M=[],dragId=null,editId=null,cAction=null,rId=null,curTab='status';
-const S2E={retornando:'Retornando',disponivel:'Disponível',reservado:'Reservado',locada:'Locada'};
+const S2E={retornando:'Retornando',manutencao:'Manutenção',disponivel:'Disponível',reservado:'Reservado',locada:'Locada'};
 const E2S={};Object.entries(S2E).forEach(([k,v])=>E2S[v]=k);
-const M2E={ok:'Ok',em_revisao:'Em revisão',com_defeito:'Com defeito'};
+const M2E={ok_revisada:'Ok - revisada',em_andamento:'Em andamento',com_defeito:'Com defeito'};
 const E2M={};Object.entries(M2E).forEach(([k,v])=>E2M[v]=k);
 const MARCA_LOGO={'JLG':'logo-jlg.png','Haulotte':'logo-haulotte.png','Genie':'logo-genie.png','Manitou':'logo-manitou.png'};
 const MARCA_BG={'JLG':'#F26522','Haulotte':'#1a1a1a','Genie':'#0057A0','Manitou':'#CC0000'};
 function marcaHTML(marca){const logo=MARCA_LOGO[marca];const bg=MARCA_BG[marca]||'#666';if(logo)return '<img src="'+logo+'" alt="'+esc(marca)+'" style="height:28px;object-fit:contain;max-width:60px">';return '<span style="color:#fff;font-size:9px;font-weight:500;letter-spacing:.5px">'+esc(marca||'?')+'</span>'}
 function marcaBadge(marca){const bg=MARCA_BG[marca]||'#666';return '<div style="width:68px;height:36px;border-radius:6px;background:'+bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px">'+marcaHTML(marca)+'</div>'}
-function fromS(m){return{id:m.id,name:m.maquina||'',column:S2E[m.status]||'Disponível',cc:m.cliente_atual||'',nc:m.proximo_cliente||'',dr:m.data_retorno||'',dn:m.data_proxima_locacao||'',dl:m.data_locacao||'',ms:M2E[m.manutencao]||'Ok',modelo:m.modelo||'',serie:m.numero_serie||'',marca:m.marca||''}}
+function fromS(m){return{id:m.id,name:m.maquina||'',column:S2E[m.status]||'Disponível',cc:m.cliente_atual||'',nc:m.proximo_cliente||'',dr:m.data_retorno||'',dn:m.data_proxima_locacao||'',dl:m.data_locacao||'',ms:M2E[m.manutencao]||'Ok - revisada',modelo:m.modelo||'',serie:m.numero_serie||'',marca:m.marca||''}}
 function toS(m){return{id:m.id,maquina:m.name||'',status:E2S[m.column]||'disponivel',cliente_atual:m.cc||'',proximo_cliente:m.nc||'',data_retorno:m.dr||'',data_proxima_locacao:m.dn||'',data_locacao:m.dl||'',manutencao:E2M[m.ms]||'ok',modelo:m.modelo||'',numero_serie:m.serie||'',marca:m.marca||''}}
 async function api(body){if(body.machine)body={...body,machine:toS(body.machine)};const u=API+'?payload='+encodeURIComponent(JSON.stringify(body))+'&_='+Date.now();const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);const j=JSON.parse(await r.text());if(j.data&&Array.isArray(j.data))j.data=j.data.map(fromS);return j}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function fd(s){if(!s)return'';try{if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}const d=new Date(s);if(!isNaN(d)){const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yy=d.getFullYear();return dd+'/'+mm+'/'+yy}return s.replace(/\s+\d{2}:\d{2}:\d{2}.*/,'')}catch{return s}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-function mc(s){return s==='Ok'?'mb-ok':s==='Em revisão'?'mb-rv':'mb-df'}
+function mc(s){return s==='Ok - revisada'?'mb-ok':s==='Em andamento'?'mb-prog':s==='Com defeito'?'mb-df':'mb-ok'}
 let lt=null;
 function sL(on){const b=document.getElementById('loadBar'),s=document.getElementById('spin');if(on){b.className='on';s.className='on'}else{b.className='done';s.className='';clearTimeout(lt);lt=setTimeout(()=>b.className='',400)}}
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className='show '+t;setTimeout(()=>e.classList.remove('show'),3400)}
@@ -243,7 +244,7 @@ function closeR(){document.getElementById('rBg').classList.remove('open');rId=nu
 async function doR(){const m=M.find(x=>x.id===rId);if(!m)return;const c=document.getElementById('rC').value.trim();if(!c){toast('Informe o cliente.','err');return}m.cc=c;const ds=document.getElementById('rDS').value,de=document.getElementById('rDE').value;if(ds)m.dn=ds;if(de)m.dr=de;closeR();sL(true);try{await api({action:'update',machine:m});toast(m.name+' — Contrato renovado!');await loadAll()}catch{toast('Erro.','err')}finally{sL(false)}}
 function oModal(t){document.getElementById('mT').textContent=t;document.getElementById('mBg').classList.add('open');setTimeout(()=>document.getElementById('fN').focus(),50)}
 function cModal(){document.getElementById('mBg').classList.remove('open');editId=null}
-function oAdd(){editId=null;['fN','fCC','fNC','fModelo','fSerie'].forEach(i=>document.getElementById(i).value='');document.getElementById('fMarca').value='';['fDL','fDR','fDN'].forEach(i=>document.getElementById(i).value='');document.getElementById('fM').value='Ok';document.getElementById('fCol').value='Disponível';oModal('Nova Máquina')}
+function oAdd(){editId=null;['fN','fCC','fNC','fModelo','fSerie'].forEach(i=>document.getElementById(i).value='');document.getElementById('fMarca').value='';['fDL','fDR','fDN'].forEach(i=>document.getElementById(i).value='');document.getElementById('fM').value='Ok - revisada';document.getElementById('fCol').value='Disponível';oModal('Nova Máquina')}
 function oEdit(id){const m=M.find(x=>x.id===id);if(!m)return;editId=id;document.getElementById('fModelo').value=m.modelo||'';document.getElementById('fSerie').value=m.serie||'';document.getElementById('fMarca').value=m.marca||'';document.getElementById('fN').value=m.name||'';document.getElementById('fCC').value=m.cc||'';document.getElementById('fNC').value=m.nc||'';document.getElementById('fDL').value=m.dl||'';document.getElementById('fDR').value=m.dr||'';document.getElementById('fDN').value=m.dn||'';document.getElementById('fM').value=m.ms||'Ok';document.getElementById('fCol').value=m.column||'Disponível';oModal('Editar Máquina')}
 async function save(){const n=document.getElementById('fN').value.trim();const mod=document.getElementById('fModelo').value.trim();const ser=document.getElementById('fSerie').value.trim();if(!mod&&!n){toast('Informe o modelo ou nome da máquina.','err');return}const d={name:n,modelo:document.getElementById('fModelo').value.trim(),serie:document.getElementById('fSerie').value.trim(),marca:document.getElementById('fMarca').value,cc:document.getElementById('fCC').value.trim(),nc:document.getElementById('fNC').value.trim(),dl:document.getElementById('fDL').value,dr:document.getElementById('fDR').value,dn:document.getElementById('fDN').value,ms:document.getElementById('fM').value,column:document.getElementById('fCol').value};const eid=editId;cModal();sL(true);try{if(eid){d.id=eid;await api({action:'update',machine:d});toast('Atualizada!')}else{d.id=uid();await api({action:'add',machine:d});toast('Adicionada!')}await loadAll()}catch{toast('Erro ao salvar.','err')}finally{sL(false)}}
 async function loadAll(){sL(true);try{const r=await api({action:'getAll'});M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];render()}catch{toast('Erro ao carregar.','err')}finally{sL(false)}}
