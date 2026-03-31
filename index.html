@@ -136,7 +136,8 @@
 
 <div class="tbar"><div class="tbar-in">
   <div class="swrap"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="sinput" id="sI" type="text" placeholder="Buscar por nome ou cliente…"></div>
-  <select class="sel" id="fS"><option value="">Todas as manutenções</option><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select>
+  <select class="sel" id="fMarcaFilter"><option value="">Todas as marcas</option><option value="JLG">JLG</option><option value="Haulotte">Haulotte</option><option value="Genie">Genie</option><option value="Manitou">Manitou</option><option value="Skyjack">Skyjack</option></select>
+    <select class="sel" id="fS"><option value="">Todas as manutenções</option><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select>
   <div class="bdef"><span class="dot"></span><span id="dC">0</span>&nbsp;com defeito</div>
 </div></div>
 
@@ -259,6 +260,7 @@ document.getElementById('cCancel').addEventListener('click',closeCo);
 document.getElementById('cOk').addEventListener('click',()=>{const fn=cAction;closeCo();if(fn){fn()}});
 document.getElementById('sI').addEventListener('input',render);
 document.getElementById('fS').addEventListener('change',render);
+document.getElementById('fMarcaFilter').addEventListener('change',render);
 document.getElementById('mBg').addEventListener('click',e=>{if(e.target===document.getElementById('mBg'))cModal()});
 document.getElementById('rBg').addEventListener('click',e=>{if(e.target===document.getElementById('rBg'))closeR()});
 document.getElementById('cBg').addEventListener('click',e=>{if(e.target===document.getElementById('cBg'))closeCo()});
