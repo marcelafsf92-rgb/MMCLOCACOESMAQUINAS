@@ -218,7 +218,7 @@ function isMarcelo(m){const c=((m.cc||'')+' '+(m.nc||'')).toLowerCase();return c
 function render(){
   const marc=M.filter(m=>m.column==='Obra MMC'||isMarcelo(m));
   const locRetornando=M.filter(m=>m.column==='Locada'&&!isMarcelo(m)&&m.dr).map(m=>({...m,column:'Retornando',_espelho:true}));
-  const sm=[...M.filter(m=>m.column!=='Locada'&&!isMarcelo(m)),...locRetornando],lm=M.filter(m=>m.column==='Locada'&&!isMarcelo(m));
+  const sm=[...M.filter(m=>m.column!=='Locada'&&m.column!=='Obra MMC'&&!isMarcelo(m)),...locRetornando],lm=M.filter(m=>m.column==='Locada'&&!isMarcelo(m));
   document.getElementById('dC').textContent=M.filter(m=>m.ms==='Com defeito').length;
   document.getElementById('tcS').textContent=sm.length;
   document.getElementById('tcL').textContent=lm.length;
