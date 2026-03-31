@@ -289,34 +289,44 @@ let histData=[];
 async function loadHist(){
   try{const r=await api({action:'getHistory'});histData=Array.isArray(r?.data)?r.data:[]}catch{histData=[]}
 }
-function normDate(s){if(!s)return'';try{if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;var d=new Date(s);if(!isNaN(d))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return''}catch{return''}}
 function renderHist(){
-  var maq=document.getElementById('hMaqFilter').value;
-  var act=document.getElementById('hActionFilter').value;
-  var dfrom=document.getElementById('hDateFrom').value;
-  var dto=document.getElementById('hDateTo').value;
-  var list=histData.filter(function(rec){
-    if(maq&&rec.maquina_id!==maq)return false;
-    if(act&&rec.tipo!==act)return false;
-    var rd=normDate(rec.data);
-    if(dfrom&&rd&&rd<dfrom)return false;
-    if(dto&&rd&&rd>dto)return false;
-    return true;
-  });
-  list.sort(function(a,b){var da=a.timestamp||'',db=b.timestamp||'';return da>db?-1:da<db?1:0});
   var grid=document.getElementById('histGrid');
+  if(!histData||!histData.length){grid.innerHTML='<div class="cempty" style="padding:40px">Nenhum registro encontrado</div>';return}
+  var maqF=document.getElementById('hMaqFilter').value;
+  var actF=document.getElementById('hActionFilter').value;
+  var list=[];
+  for(var i=0;i<histData.length;i++){
+    var r=histData[i];
+    if(maqF&&r.maquina_id!==maqF)continue;
+    if(actF&&r.tipo!==actF)continue;
+    list.push(r);
+  }
+  list.reverse();
   if(!list.length){grid.innerHTML='<div class="cempty" style="padding:40px">Nenhum registro encontrado</div>';return}
-  console.log('renderHist list:',list.length,list[0]);grid.innerHTML=list.map(function(rec){console.log('rec:',rec.data,rec.maquina_nome,rec.descricao);
-    var dt=fd(rec.data)||'';
-    var hr=fh(rec.hora)||'';
-    var maqObj=M.find(function(x){return x.id===rec.maquina_id});
-    var nm=maqObj?(maqObj.modelo||maqObj.name||rec.maquina_nome):rec.maquina_nome||rec.maquina_id;
-    var dias=rec.dias_no_status?'<span class="hist-time">'+rec.dias_no_status+' dias</span>':'';
-    var ico=rec.tipo==='status'?'#dbeafe':'#1e40af';
-    var icoBg=rec.tipo==='status'?'background:#dbeafe;color:#1e40af':rec.tipo==='cliente'?'background:#d1fae5;color:#065f46':'background:#fef3c7;color:#92400e';
-    var icoSvg=rec.tipo==='status'?'<polyline points="9 18 15 12 9 6"/>':rec.tipo==='cliente'?'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>':'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>';
-    return '<div class="hist-row"><div class="hist-icon" style="'+icoBg+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+icoSvg+'</svg></div><div class="hist-date"><b>'+dt+'</b>'+hr+'</div><div class="hist-body"><div class="hist-maq">'+esc(nm)+'</div><div class="hist-desc">'+esc(rec.descricao||'')+'</div></div>'+dias+'</div>';
-  }).join('');
+  var html='';
+  for(var i=0;i<list.length;i++){
+    var r=list[i];
+    var dt='';
+    try{var dd=new Date(r.data||r.timestamp);if(!isNaN(dd))dt=String(dd.getDate()).padStart(2,'0')+'/'+String(dd.getMonth()+1).padStart(2,'0')+'/'+dd.getFullYear()}catch(e){}
+    var hr='';
+    try{var hd=new Date(r.hora||r.timestamp);if(!isNaN(hd))hr=String(hd.getHours()).padStart(2,'0')+':'+String(hd.getMinutes()).padStart(2,'0')}catch(e){}
+    if(!hr&&r.timestamp){try{var ts=new Date(r.timestamp);hr=String(ts.getHours()).padStart(2,'0')+':'+String(ts.getMinutes()).padStart(2,'0')}catch(e){}}
+    var nm=r.maquina_nome||r.maquina_id||'';
+    var mObj=M.find(function(x){return x.id===r.maquina_id});
+    if(mObj)nm=mObj.modelo||mObj.name||nm;
+    var desc=r.descricao||'';
+    var dias=r.dias_no_status?'<span class="hist-time">'+r.dias_no_status+' dias</span>':'';
+    var bgColor=r.tipo==='status'?'#dbeafe':r.tipo==='cliente'?'#d1fae5':'#fef3c7';
+    var fgColor=r.tipo==='status'?'#1e40af':r.tipo==='cliente'?'#065f46':'#92400e';
+    var svgPath=r.tipo==='status'?'<polyline points="9 18 15 12 9 6"/>':r.tipo==='cliente'?'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>':'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>';
+    html+='<div class="hist-row">';
+    html+='<div class="hist-icon" style="background:'+bgColor+';color:'+fgColor+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+svgPath+'</svg></div>';
+    html+='<div class="hist-date"><b>'+dt+'</b><br>'+hr+'</div>';
+    html+='<div class="hist-body"><div class="hist-maq">'+esc(nm)+'</div><div class="hist-desc">'+esc(desc)+'</div></div>';
+    html+=dias;
+    html+='</div>';
+  }
+  grid.innerHTML=html;
 }
 function showMaqHist(id){
   switchTab('historico');
