@@ -636,13 +636,15 @@ function setLoading(on) {
 }
 let toastTimer=null;
 function toast(msg,type='ok',action=null) {
+  // Don't overwrite undo toast with regular messages
+  if(undoActive && !action) return;
   const e=document.getElementById('toast');
   clearTimeout(toastTimer);
   if(action){
-    e.innerHTML=esc(msg)+'<button id="toastAction" style="margin-left:12px;padding:4px 12px;border-radius:6px;border:none;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:13px;cursor:pointer;background:#fff;color:#991b1b;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:background .15s">'+esc(action.label)+'</button>';
+    e.innerHTML=esc(msg)+'<button id="toastAction" style="margin-left:12px;padding:4px 14px;border-radius:6px;border:2px solid #991b1b;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;background:#fff;color:#991b1b;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:background .15s">'+esc(action.label)+'</button>';
     e.className='show '+type;
     document.getElementById('toastAction').addEventListener('click',()=>{e.classList.remove('show');action.fn()});
-    toastTimer=setTimeout(()=>e.classList.remove('show'),8000);
+    toastTimer=setTimeout(()=>{e.classList.remove('show');undoActive=false},8000);
   } else {
     e.textContent=msg;e.className='show '+type;
     toastTimer=setTimeout(()=>e.classList.remove('show'),3400);
@@ -946,19 +948,21 @@ function iRetM(id) {
     setLoading(true);try{m.column='Retornando';m.cc='';m.nc='';await api({action:'update',machine:m});toast(label+' — Retorno da obra iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{setLoading(false)}
   });
 }
+let undoActive=false;
 function aDel(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
-  // Save full snapshot before delete for undo
   const snapshot={...m};
   showCo('Remover Máquina','Remover "'+label+'"? Você poderá desfazer nos próximos segundos.','Remover','#ef4444','#fee2e2',async()=>{
     setLoading(true);
     try{
       await api({action:'delete',id});
-      await loadAll();
+      // Show undo toast BEFORE loadAll to guarantee visibility
+      undoActive=true;
       toast('Máquina "'+label+'" removida.','err',{
         label:'Desfazer',
         fn: async()=>{
+          undoActive=false;
           setLoading(true);
           try{
             await api({action:'add',machine:snapshot});
@@ -968,7 +972,9 @@ function aDel(id) {
           finally{setLoading(false)}
         }
       });
-    }catch{toast('Erro.','err')}finally{setLoading(false)}
+      await loadAll();
+      undoActive=false;
+    }catch{toast('Erro ao remover.','err');undoActive=false}finally{setLoading(false)}
   });
 }
 
