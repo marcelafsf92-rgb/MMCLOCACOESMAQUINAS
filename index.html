@@ -62,11 +62,12 @@
     #toast {
       position: fixed; bottom: 24px; right: 24px; z-index: 9999;
       padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500;
-      max-width: 320px; box-shadow: var(--sh-l);
+      max-width: 420px; box-shadow: var(--sh-l);
       transform: translateY(80px); opacity: 0;
       transition: all .28s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+      display: flex; align-items: center;
     }
-    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
     #toast.ok { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
     #toast.err { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
 
@@ -633,9 +634,19 @@ function setLoading(on) {
   if(on){b.className='on';s.className='on'}
   else{b.className='done';s.className='';clearTimeout(lt);lt=setTimeout(()=>b.className='',400)}
 }
-function toast(msg,type='ok') {
-  const e=document.getElementById('toast');e.textContent=msg;e.className='show '+type;
-  setTimeout(()=>e.classList.remove('show'),3400);
+let toastTimer=null;
+function toast(msg,type='ok',action=null) {
+  const e=document.getElementById('toast');
+  clearTimeout(toastTimer);
+  if(action){
+    e.innerHTML=esc(msg)+'<button id="toastAction" style="margin-left:12px;padding:4px 12px;border-radius:6px;border:none;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:13px;cursor:pointer;background:#fff;color:#991b1b;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:background .15s">'+esc(action.label)+'</button>';
+    e.className='show '+type;
+    document.getElementById('toastAction').addEventListener('click',()=>{e.classList.remove('show');action.fn()});
+    toastTimer=setTimeout(()=>e.classList.remove('show'),8000);
+  } else {
+    e.textContent=msg;e.className='show '+type;
+    toastTimer=setTimeout(()=>e.classList.remove('show'),3400);
+  }
 }
 
 // ── Editor Mode ──
@@ -938,8 +949,26 @@ function iRetM(id) {
 function aDel(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
-  showCo('Remover Máquina','Remover "'+label+'"? Esta ação não pode ser desfeita.','Remover','#ef4444','#fee2e2',async()=>{
-    setLoading(true);try{await api({action:'delete',id});toast('Máquina removida.');await loadAll()}catch{toast('Erro.','err')}finally{setLoading(false)}
+  // Save full snapshot before delete for undo
+  const snapshot={...m};
+  showCo('Remover Máquina','Remover "'+label+'"? Você poderá desfazer nos próximos segundos.','Remover','#ef4444','#fee2e2',async()=>{
+    setLoading(true);
+    try{
+      await api({action:'delete',id});
+      await loadAll();
+      toast('Máquina "'+label+'" removida.','err',{
+        label:'Desfazer',
+        fn: async()=>{
+          setLoading(true);
+          try{
+            await api({action:'add',machine:snapshot});
+            toast(label+' restaurada!');
+            await loadAll();
+          }catch{toast('Erro ao restaurar.','err')}
+          finally{setLoading(false)}
+        }
+      });
+    }catch{toast('Erro.','err')}finally{setLoading(false)}
   });
 }
 
