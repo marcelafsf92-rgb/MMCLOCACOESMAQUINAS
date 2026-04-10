@@ -415,6 +415,34 @@
       font-size: 15px; cursor: pointer;
     }
 
+    /* ===== DASHBOARD ===== */
+    .dash {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px; padding: 16px 28px 0; max-width: 1440px; margin: 0 auto;
+    }
+    .dash-card {
+      background: var(--surface); border-radius: 10px; padding: 14px 16px;
+      border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;
+    }
+    .dash-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .dash-icon svg { width: 20px; height: 20px; }
+    .dash-val {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+      font-size: 24px; color: var(--navy); line-height: 1;
+    }
+    .dash-lbl { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+    /* ===== ALERT BADGE (retorno vencido) ===== */
+    .alert-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
+      background: #ef4444; color: #fff; animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
     /* ===== EDITOR MODE ===== */
     body:not(.editor-mode) .btn-add { display: none; }
     body:not(.editor-mode) .cb-e,
@@ -428,14 +456,56 @@
     @media (max-width: 700px) {
       .board { grid-template-columns: 1fr; }
       .lgrid { grid-template-columns: 1fr; }
+      .frow { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
-      .hdr { padding: 0 14px; }
-      .tbar { padding: 10px 14px; }
-      .bwrap { padding: 14px; }
+      .hdr { padding: 0 12px; height: 60px; }
+      .hdr-logo { height: 42px; }
+      .hdr-text { margin-left: 8px; }
+      .br-name { font-size: 16px; }
       .br-sub { display: none; }
+      .hdr-actions { gap: 6px; }
+      .mode-btn { padding: 5px 10px; font-size: 11px; }
+      .btn-add { padding: 8px 12px; font-size: 13px; }
+      .btn-add svg { display: none; }
+      .tabs { padding: 0 8px; }
+      .tabs-in { gap: 0; }
+      .tbtn { padding: 10px 10px; font-size: 12px; letter-spacing: 0; }
+      .tc { min-width: 18px; height: 18px; font-size: 10px; margin-left: 4px; padding: 0 4px; }
+      .tbar { padding: 8px 12px; }
+      .tbar-in { gap: 8px; }
+      .swrap { min-width: 120px; max-width: none; flex: 1; }
+      .sel { padding: 7px 8px; font-size: 12px; }
+      .sinput { font-size: 13px; padding: 7px 10px 7px 32px; }
       .bdef { display: none; }
-      .tabs { padding: 0 14px; }
+      .bwrap { padding: 10px 12px; }
+      .dash { padding: 10px 12px 0; gap: 8px; grid-template-columns: repeat(2, 1fr); }
+      .dash-card { padding: 10px 12px; }
+      .dash-val { font-size: 20px; }
+      .dash-icon { width: 34px; height: 34px; }
+      .dash-icon svg { width: 16px; height: 16px; }
+      .card { padding: 10px; }
+      .cname { font-size: 15px; }
+      .cb { width: 32px; height: 32px; }
+      .cb svg { width: 14px; height: 14px; }
+      .lcard { padding: 12px; }
+      .lacts { gap: 6px; }
+      .abtn { padding: 8px 6px; font-size: 11px; min-width: 60px; }
+      .abtn svg { width: 12px; height: 12px; }
+      .modal { max-width: 100%; border-radius: 12px; margin: 10px; }
+      .mbd { padding: 14px 16px; }
+      .mft { padding: 0 16px 16px; }
+      .cgrid { gap: 4px 8px; }
+      .cf label { font-size: 9px; }
+      .cf span { font-size: 12px; }
+      .hist-row { padding: 10px 12px; gap: 10px; flex-wrap: wrap; }
+      .hist-date { min-width: 70px; font-size: 10px; }
+      .hist-date b { font-size: 12px; }
+      #toast { right: 12px; left: 12px; max-width: none; bottom: 16px; font-size: 13px; }
+    }
+    @media (max-width: 380px) {
+      .dash { grid-template-columns: 1fr 1fr; }
+      .tbtn { padding: 10px 7px; font-size: 11px; }
     }
   </style>
 </head>
@@ -498,6 +568,34 @@
   </select>
   <div class="bdef"><span class="dot"></span><span id="dC">0</span>&nbsp;com defeito</div>
 </div></div>
+
+<!-- Dashboard -->
+<div class="dash" id="dashboard">
+  <div class="dash-card">
+    <div class="dash-icon" style="background:#dbeafe;color:#1e40af"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+    <div><div class="dash-val" id="dTotal">0</div><div class="dash-lbl">Total</div></div>
+  </div>
+  <div class="dash-card">
+    <div class="dash-icon" style="background:#d1fae5;color:#065f46"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div><div class="dash-val" id="dLocadas">0</div><div class="dash-lbl">Locadas</div></div>
+  </div>
+  <div class="dash-card">
+    <div class="dash-icon" style="background:#fef3c7;color:#92400e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+    <div><div class="dash-val" id="dDisp">0</div><div class="dash-lbl">Disponíveis</div></div>
+  </div>
+  <div class="dash-card">
+    <div class="dash-icon" style="background:#fee2e2;color:#991b1b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    <div><div class="dash-val" id="dDefeito">0</div><div class="dash-lbl">Com Defeito</div></div>
+  </div>
+  <div class="dash-card">
+    <div class="dash-icon" style="background:#ede9fe;color:#5b21b6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+    <div><div class="dash-val" id="dOcup">0%</div><div class="dash-lbl">Ocupação</div></div>
+  </div>
+  <div class="dash-card" id="dAlertCard" style="display:none">
+    <div class="dash-icon" style="background:#fee2e2;color:#ef4444"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+    <div><div class="dash-val" id="dVencidos" style="color:#ef4444">0</div><div class="dash-lbl">Retorno Vencido</div></div>
+  </div>
+</div>
 
 <!-- Tab: Status -->
 <div class="tcont active" id="tab-status"><div class="bwrap"><div class="board">
@@ -770,6 +868,17 @@ function isMarcelo(m) {
   return c.includes('obra mmc')||c.includes('mmc metalica')||c.includes('obras mmc')||c.includes('mmc metálica');
 }
 
+// ── Overdue check ──
+function isOverdue(m) {
+  if(!m.dr) return false;
+  return m.dr < new Date().toISOString().slice(0,10);
+}
+function overdueBadge(m) {
+  if(!isOverdue(m)) return '';
+  const days=Math.floor((new Date()-new Date(m.dr))/(1000*60*60*24));
+  return '<span class="alert-badge">⚠ '+days+'d atraso</span>';
+}
+
 // ── SVG Icons ──
 const IC = {
   hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
@@ -798,11 +907,11 @@ function cardH(m, showConfirm, showManut) {
     +'<button class="cb cb-h" onclick="event.stopPropagation();showMaqHist(\''+esc(m.id)+'\')" title="Histórico">'+IC.hist+'</button>'
     +'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar">'+IC.edit+'</button>'
     +'<button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover">'+IC.del+'</button>'
-    +'</div></div>'+manutBadge
+    +'</div></div>'+manutBadge+overdueBadge(m)
     +'<div class="cgrid">'
     +'<div class="cf"><label>'+lbl1+'</label><span class="'+(m.cc?'':'nil')+'">'+esc(m.cc||'—')+'</span></div>'
     +'<div class="cf"><label>'+lbl2+'</label><span class="'+(val2==='—'?'nil':'')+'">'+val2+'</span></div>'
-    +'<div class="cf"><label>Retorno</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
+    +'<div class="cf"><label>Retorno</label><span style="'+(isOverdue(m)?'color:#ef4444;font-weight:600':'')+'" class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
     +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
     +obsHtml+'</div></div>';
 }
@@ -810,16 +919,18 @@ function cardH(m, showConfirm, showManut) {
 // ── Render: Locada Card (BUG FIX #3: added Hist button) ──
 function locH(m) {
   const title=esc(m.modelo||m.name||'—');
-  return '<div class="lcard"><div class="lcard-top">'
+  const overdue=overdueBadge(m);
+  return '<div class="lcard"'+(isOverdue(m)?' style="border-color:#fca5a5"':'')+'><div class="lcard-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="lcard-info"><div class="cname">'+title+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
     +'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'
+    +overdue
     +'<div class="cgrid">'
     +'<div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div>'
     +'<div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div>'
     +'<div class="cf"><label>Data Locação</label><span>'+(m.dl?fd(m.dl):'—')+'</span></div>'
-    +'<div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
+    +'<div class="cf"><label>Retorno Previsto</label><span style="'+(isOverdue(m)?'color:#ef4444;font-weight:600':'')+'" class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
     +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
     +'</div>'
     +'<div class="lacts">'
@@ -875,12 +986,32 @@ function render() {
   const locRetornando=M.filter(m=>m.column==='Locada'&&!isMarcelo(m)&&m.dr).map(m=>({...m,column:'Retornando',_espelho:true}));
   const sm=[...M.filter(m=>m.column!=='Locada'&&m.column!=='Obra MMC'&&m.column!=='Venda'&&m.column!=='Reforma'&&m.column!=='A decidir'&&!isMarcelo(m)),...locRetornando];
   const lm=M.filter(m=>m.column==='Locada'&&!isMarcelo(m));
+  const defeitos=M.filter(m=>m.ms==='Com defeito').length;
+  const disponiveis=M.filter(m=>m.column==='Disponível').length;
+  const locadasTotal=lm.length+marc.length;
+  const totalAtivas=M.length-vrMaq.length;
+  const ocupacao=totalAtivas>0?Math.round((locadasTotal/totalAtivas)*100):0;
 
-  document.getElementById('dC').textContent=M.filter(m=>m.ms==='Com defeito').length;
+  // Overdue returns
+  const today=new Date().toISOString().slice(0,10);
+  const vencidos=M.filter(m=>m.dr&&m.dr<today&&(m.column==='Locada'||m.column==='Retornando'||m.column==='Obra MMC'));
+
+  // Tab counters
+  document.getElementById('dC').textContent=defeitos;
   document.getElementById('tcS').textContent=sm.length;
   document.getElementById('tcL').textContent=lm.length;
   document.getElementById('tcM').textContent=marc.length;
   document.getElementById('tcVR').textContent=vrMaq.length;
+
+  // Dashboard
+  document.getElementById('dTotal').textContent=M.length;
+  document.getElementById('dLocadas').textContent=locadasTotal;
+  document.getElementById('dDisp').textContent=disponiveis;
+  document.getElementById('dDefeito').textContent=defeitos;
+  document.getElementById('dOcup').textContent=ocupacao+'%';
+  const alertCard=document.getElementById('dAlertCard');
+  if(vencidos.length){alertCard.style.display='flex';document.getElementById('dVencidos').textContent=vencidos.length}
+  else{alertCard.style.display='none'}
 
   // Kanban
   const sf=filt(sm);
