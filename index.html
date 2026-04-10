@@ -1154,13 +1154,14 @@ function populateHistFilter() {
 // ── Load All ──
 async function loadAll() {
   const cached=sessionStorage.getItem('mmc_cache');
-  if(cached){try{M=JSON.parse(cached);render()}catch{}}
+  if(cached){try{M=JSON.parse(cached);render();populateHistFilter()}catch{}}
   setLoading(true);
   try{
     const r=await api({action:'getAll'});
     M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];
     sessionStorage.setItem('mmc_cache',JSON.stringify(M));
     render();populateHistFilter();
+    histLoaded=false;
   }catch{if(!M.length)toast('Erro ao carregar.','err')}finally{setLoading(false)}
 }
 
