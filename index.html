@@ -703,17 +703,42 @@ async function api(body) {
   const url=API+'?payload='+encodeURIComponent(JSON.stringify(body))+'&_='+Date.now();
   const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status);
   const j=JSON.parse(await r.text());
-  // Only convert machine data, NOT history records
   if(action==='getAll' && j.data && Array.isArray(j.data)) j.data=j.data.map(fromS);
   return j;
 }
+
+/** Optimistic local update — apply change to M[] instantly, sync API in background */
+function localUpdate(machine) {
+  const idx=M.findIndex(x=>x.id===machine.id);
+  if(idx>=0) M[idx]={...M[idx],...machine};
+  else M.push(machine);
+  sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+  render();
+}
+function localDelete(id) {
+  M=M.filter(x=>x.id!==id);
+  sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+  render();
+}
+/** Background sync — reload from API without blocking UI */
+function bgSync() {
+  api({action:'getAll'}).then(r=>{
+    M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];
+    sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+    render();populateHistFilter();
+  }).catch(()=>{});
+}
+let histLoaded=false;
 
 // ── Tabs ──
 function switchTab(t) {
   curTab=t;
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
   document.querySelectorAll('.tcont').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));
-  if(t==='historico') renderHist(); else render();
+  if(t==='historico'){
+    if(!histLoaded){histLoaded=true;loadHist().then(renderHist)}
+    else renderHist();
+  } else render();
 }
 
 // ── Marca Badge ──
@@ -893,10 +918,11 @@ SCOLS.forEach(col=>{
     const mid=dragId;dragId=null;dropping=true;
     const m=M.find(x=>x.id===mid);
     if(!m||m.column===col){dropping=false;return}
-    const old=m.column;m.column=col;render();setLoading(true);
-    try{await api({action:'update',machine:m});toast('Movida para "'+col+'"');await loadAll()}
-    catch(er){console.error(er);m.column=old;render();toast('Erro ao salvar.','err')}
-    finally{setLoading(false);dropping=false}
+    const old=m.column;m.column=col;
+    localUpdate(m);toast('Movida para "'+col+'"');
+    try{await api({action:'update',machine:m});bgSync()}
+    catch(er){console.error(er);m.column=old;localUpdate(m);toast('Erro ao salvar.','err')}
+    finally{dropping=false}
   });
 });
 
@@ -917,7 +943,8 @@ function cEnt(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
   showCo('Confirmar Entrega','Confirmar que "'+label+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{
-    setLoading(true);try{m.column='Locada';await api({action:'update',machine:m});toast(label+' — Entrega confirmada!');await loadAll()}catch{toast('Erro.','err')}finally{setLoading(false)}
+    m.column='Locada';localUpdate(m);toast(label+' — Entrega confirmada!');
+    try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
   });
 }
 let retId=null;
@@ -934,18 +961,18 @@ async function doRet() {
   const m=M.find(x=>x.id===retId);if(!m)return;
   const label=m.modelo||m.name||retId;
   const newDr=document.getElementById('retDate').value;
-  // Preserve data_locacao (dl) — only update dr and column
   if(newDr) m.dr=newDr;
   m.column='Retornando';
-  closeRet();setLoading(true);
-  try{await api({action:'update',machine:m});toast(label+' — Retorno iniciado!');await loadAll();switchTab('status')}
-  catch{toast('Erro.','err')}finally{setLoading(false)}
+  closeRet();localUpdate(m);toast(label+' — Retorno iniciado!');switchTab('status');
+  try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
 }
 function iRetM(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
   showCo('Retorno da Obra','Iniciar retorno de "'+label+'" da obra da MMC Metálica? O campo cliente será limpo.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{
-    setLoading(true);try{m.column='Retornando';m.cc='';m.nc='';await api({action:'update',machine:m});toast(label+' — Retorno da obra iniciado!');await loadAll();switchTab('status')}catch{toast('Erro.','err')}finally{setLoading(false)}
+    m.column='Retornando';m.cc='';m.nc='';
+    localUpdate(m);toast(label+' — Retorno da obra iniciado!');switchTab('status');
+    try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
   });
 }
 let undoActive=false;
@@ -954,27 +981,18 @@ function aDel(id) {
   const label=m.modelo||m.name||id;
   const snapshot={...m};
   showCo('Remover Máquina','Remover "'+label+'"? Você poderá desfazer nos próximos segundos.','Remover','#ef4444','#fee2e2',async()=>{
-    setLoading(true);
-    try{
-      await api({action:'delete',id});
-      // Show undo toast BEFORE loadAll to guarantee visibility
-      undoActive=true;
-      toast('Máquina "'+label+'" removida.','err',{
-        label:'Desfazer',
-        fn: async()=>{
-          undoActive=false;
-          setLoading(true);
-          try{
-            await api({action:'add',machine:snapshot});
-            toast(label+' restaurada!');
-            await loadAll();
-          }catch{toast('Erro ao restaurar.','err')}
-          finally{setLoading(false)}
-        }
-      });
-      await loadAll();
-      undoActive=false;
-    }catch{toast('Erro ao remover.','err');undoActive=false}finally{setLoading(false)}
+    localDelete(id);
+    undoActive=true;
+    toast('Máquina "'+label+'" removida.','err',{
+      label:'Desfazer',
+      fn: async()=>{
+        undoActive=false;
+        localUpdate(snapshot);
+        try{await api({action:'add',machine:snapshot});bgSync();toast(label+' restaurada!')}
+        catch{toast('Erro ao restaurar.','err')}
+      }
+    });
+    try{await api({action:'delete',id});bgSync();undoActive=false}catch{toast('Erro ao remover.','err');localUpdate(snapshot);undoActive=false}
   });
 }
 
@@ -994,9 +1012,9 @@ async function doR() {
   m.cc=c;
   const ds=document.getElementById('rDS').value,de=document.getElementById('rDE').value;
   if(ds)m.dl=ds;if(de)m.dr=de;
-  const label=m.modelo||m.name||'';closeR();setLoading(true);
-  try{await api({action:'update',machine:m});toast(label+' — Contrato renovado!');await loadAll()}
-  catch{toast('Erro.','err')}finally{setLoading(false)}
+  const label=m.modelo||m.name||'';closeR();
+  localUpdate(m);toast(label+' — Contrato renovado!');
+  try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
 }
 
 // ── Modal: Add/Edit ──
@@ -1046,12 +1064,14 @@ async function save() {
     obs:document.getElementById('fObs').value.trim().toUpperCase()
   };
   if(d.serie){const dup=M.find(x=>x.serie===d.serie&&x.id!==editId);if(dup){toast('Nº Série "'+d.serie+'" já existe: '+dup.modelo+' ('+dup.marca+')','err');return}}
-  const eid=editId;cModal();setLoading(true);
+  const eid=editId;cModal();
+  if(eid){d.id=eid;localUpdate(d);toast('Atualizada!')}
+  else{d.id=uid();localUpdate(d);toast('Adicionada!')}
   try{
-    if(eid){d.id=eid;await api({action:'update',machine:d});toast('Atualizada!')}
-    else{d.id=uid();await api({action:'add',machine:d});toast('Adicionada!')}
-    await loadAll();
-  }catch{toast('Erro ao salvar.','err')}finally{setLoading(false)}
+    if(eid) await api({action:'update',machine:d});
+    else await api({action:'add',machine:d});
+    bgSync();
+  }catch{toast('Erro ao salvar.','err')}
 }
 
 // ── History (BUG FIX #1: text now displays correctly) ──
@@ -1134,12 +1154,13 @@ function populateHistFilter() {
 // ── Load All ──
 async function loadAll() {
   const cached=sessionStorage.getItem('mmc_cache');
-  if(cached){try{M=JSON.parse(cached);render();setLoading(true)}catch{}}else{setLoading(true)}
+  if(cached){try{M=JSON.parse(cached);render()}catch{}}
+  setLoading(true);
   try{
     const r=await api({action:'getAll'});
     M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];
     sessionStorage.setItem('mmc_cache',JSON.stringify(M));
-    render();populateHistFilter();loadHist().then(renderHist);
+    render();populateHistFilter();
   }catch{if(!M.length)toast('Erro ao carregar.','err')}finally{setLoading(false)}
 }
 
@@ -1148,10 +1169,11 @@ document.getElementById('modeBtn').addEventListener('click',()=>{
   if(!isEditor)checkEditor();
   else{isEditor=false;sessionStorage.removeItem('mmc_editor');applyMode();toast('Modo visualização')}
 });
-document.getElementById('refreshBtn').addEventListener('click',()=>{loadAll();loadHist().then(renderHist);toast('Dados atualizados!')});
+document.getElementById('refreshBtn').addEventListener('click',()=>{histLoaded=false;loadAll();toast('Dados atualizados!')});
 document.getElementById('btnAdd').addEventListener('click',oAdd);
 document.querySelectorAll('.tbtn').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
-document.getElementById('sI').addEventListener('input',render);
+let searchTimer=null;
+document.getElementById('sI').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(render,150)});
 document.getElementById('fS').addEventListener('change',render);
 document.getElementById('fMarcaFilter').addEventListener('change',render);
 document.getElementById('hMaqFilter').addEventListener('change',renderHist);
