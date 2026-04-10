@@ -890,7 +890,7 @@ const IC = {
 };
 
 // ── Render: Kanban Card ──
-function cardH(m, showConfirm, showManut) {
+function cardH(m, showConfirm, showManut, showArrival) {
   const title=esc(m.modelo||m.name||'—');
   const espelho=m._espelho?'<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#dbeafe;color:#1e40af;margin-left:6px">Locada</span>':'';
   const manutBadge=(showManut&&m.ms)?'<span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span>':'';
@@ -899,11 +899,12 @@ function cardH(m, showConfirm, showManut) {
   const val2=m.column==='Reservado'?(m.dn?fd(m.dn):'—'):esc(m.nc||'—');
   const obsHtml=m.column==='Manutenção'&&m.obs?'<div class="cf" style="grid-column:1/-1"><label>Observações</label><span style="font-size:11px">'+esc(m.obs)+'</span></div>':'';
   const cBtn=showConfirm?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega">'+IC.check+'</button>':'';
+  const arrBtn=(showArrival&&!m._espelho)?'<button class="cb cb-c" onclick="event.stopPropagation();cArr(\''+esc(m.id)+'\')" title="Confirmar Chegada"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l4 4L13 5"/><path d="M11 9l4 4L21 5"/></svg></button>':'';
   return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div class="card-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="card-info"><div class="cname">'+title+espelho+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
-    +'</div><div class="cbtns">'+cBtn
+    +'</div><div class="cbtns">'+cBtn+arrBtn
     +'<button class="cb cb-h" onclick="event.stopPropagation();showMaqHist(\''+esc(m.id)+'\')" title="Histórico">'+IC.hist+'</button>'
     +'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar">'+IC.edit+'</button>'
     +'<button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover">'+IC.del+'</button>'
@@ -1020,7 +1021,7 @@ function render() {
     document.getElementById('cn-'+col).textContent=items.length;
     const bd=document.getElementById('bd-'+col);
     if(!items.length){bd.innerHTML='<div class="cempty">Nenhuma máquina</div>';return}
-    bd.innerHTML=items.map(m=>cardH(m,col==='Reservado',col==='Retornando'||col==='Manutenção')).join('');
+    bd.innerHTML=items.map(m=>cardH(m,col==='Reservado',col==='Retornando'||col==='Manutenção',col==='Retornando')).join('');
     items.forEach(m=>{const el=bd.querySelector('[data-id="'+m.id+'"]');if(el)bindDrag(el,m.id)});
   });
 
@@ -1078,6 +1079,15 @@ function cEnt(id) {
   const label=m.modelo||m.name||id;
   showCo('Confirmar Entrega','Confirmar que "'+label+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{
     m.column='Locada';localUpdate(m);toast(label+' — Entrega confirmada!');
+    try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
+  });
+}
+function cArr(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;
+  const label=m.modelo||m.name||id;
+  showCo('Confirmar Chegada','"'+label+'" chegou na oficina? Ela será movida para Em Manutenção para revisão.','Confirmar Chegada','#f59e0b','#fef3c7',async()=>{
+    m.column='Manutenção';m.ms='Em andamento';m.dr='';
+    localUpdate(m);toast(label+' — Chegada confirmada! Movida para Manutenção.');
     try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
   });
 }
