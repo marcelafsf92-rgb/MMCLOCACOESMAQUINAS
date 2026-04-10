@@ -695,7 +695,7 @@ function toS(m) {
 }
 
 // ── API ──
-function clearCache() { sessionStorage.removeItem('mmc_cache'); }
+function clearCache() { localStorage.removeItem('mmc_cache');localStorage.removeItem('mmc_cache_ts'); }
 async function api(body) {
   const action=body.action;
   if(action && action!=='getAll' && action!=='getHistory') clearCache();
@@ -712,19 +712,22 @@ function localUpdate(machine) {
   const idx=M.findIndex(x=>x.id===machine.id);
   if(idx>=0) M[idx]={...M[idx],...machine};
   else M.push(machine);
-  sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+  localStorage.setItem('mmc_cache',JSON.stringify(M));
+  localStorage.setItem('mmc_cache_ts',String(Date.now()));
   render();
 }
 function localDelete(id) {
   M=M.filter(x=>x.id!==id);
-  sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+  localStorage.setItem('mmc_cache',JSON.stringify(M));
+  localStorage.setItem('mmc_cache_ts',String(Date.now()));
   render();
 }
 /** Background sync — reload from API without blocking UI */
 function bgSync() {
   api({action:'getAll'}).then(r=>{
     M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];
-    sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+    localStorage.setItem('mmc_cache',JSON.stringify(M));
+    localStorage.setItem('mmc_cache_ts',String(Date.now()));
     render();populateHistFilter();
   }).catch(()=>{});
 }
@@ -1153,13 +1156,22 @@ function populateHistFilter() {
 
 // ── Load All ──
 async function loadAll() {
-  const cached=sessionStorage.getItem('mmc_cache');
-  if(cached){try{M=JSON.parse(cached);render();populateHistFilter()}catch{}}
+  // 1. Instant render from localStorage cache (persists between sessions)
+  const cached=localStorage.getItem('mmc_cache');
+  const cacheTime=parseInt(localStorage.getItem('mmc_cache_ts')||'0');
+  const cacheAge=Date.now()-cacheTime;
+  if(cached){
+    try{M=JSON.parse(cached);render();populateHistFilter()}catch{}
+    // If cache is fresh (<2min), just do background sync without spinner
+    if(cacheAge<120000){bgSync();return}
+  }
+  // 2. Show spinner only if no cache or cache is old
   setLoading(true);
   try{
     const r=await api({action:'getAll'});
     M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];
-    sessionStorage.setItem('mmc_cache',JSON.stringify(M));
+    localStorage.setItem('mmc_cache',JSON.stringify(M));
+    localStorage.setItem('mmc_cache_ts',String(Date.now()));
     render();populateHistFilter();
     histLoaded=false;
   }catch{if(!M.length)toast('Erro ao carregar.','err')}finally{setLoading(false)}
@@ -1170,7 +1182,9 @@ document.getElementById('modeBtn').addEventListener('click',()=>{
   if(!isEditor)checkEditor();
   else{isEditor=false;sessionStorage.removeItem('mmc_editor');applyMode();toast('Modo visualização')}
 });
-document.getElementById('refreshBtn').addEventListener('click',()=>{histLoaded=false;loadAll();toast('Dados atualizados!')});
+document.getElementById('refreshBtn').addEventListener('click',()=>{
+  histLoaded=false;clearCache();loadAll();toast('Atualizando...');
+});
 document.getElementById('btnAdd').addEventListener('click',oAdd);
 document.querySelectorAll('.tbtn').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
 let searchTimer=null;
