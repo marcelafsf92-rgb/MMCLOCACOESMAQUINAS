@@ -1479,6 +1479,7 @@ function showInstallBanner(){
 }
 
 // ── Init ──
+if(new URLSearchParams(window.location.search).get('auth')===EDIT_PASS){isEditor=true;sessionStorage.setItem('mmc_editor','true')}
 applyMode();
 loadAll();
 </script>
