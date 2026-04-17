@@ -1299,7 +1299,8 @@ async function save() {
   try{
     if(eid) await api({action:'update',machine:d});
     else await api({action:'add',machine:d});
-    bgSync();
+    // Wait a moment for Supabase to process, then sync
+    setTimeout(()=>bgSync(),500);
   }catch{toast('Erro ao salvar.','err')}
 }
 
