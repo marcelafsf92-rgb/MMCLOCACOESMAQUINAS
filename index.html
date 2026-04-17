@@ -880,7 +880,10 @@ async function api(body) {
   }
   if(action==='update'){
     const m=toS(body.machine);
-    await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(m.id),{method:'PATCH',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify(m)});
+    const r=await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(m.id),{method:'PATCH',headers:{...SUPA_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(m)});
+    if(!r.ok){const err=await r.text();console.error('Update failed:',r.status,err);throw new Error('Update failed')}
+    const result=await r.json();
+    console.log('Update result:',result);
     return {success:true};
   }
   if(action==='delete'){
