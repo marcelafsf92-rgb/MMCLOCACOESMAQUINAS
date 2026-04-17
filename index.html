@@ -757,7 +757,9 @@
    ========================================================================== */
 
 // ── Config ──
-const API = 'https://script.google.com/macros/s/AKfycbzUBhDAvIwVzRWpCZyI_2zRDKvB0VCs0gdosIen6l0_2vqaCUOgjsr97CVoU5ilflLWAg/exec';
+const SUPA_URL = 'https://yxibxbeoeqcqcqpfensv.supabase.co';
+const SUPA_KEY = 'sb_publishable_UOmrmMH79geJ-ITCNGV1-w_2ShPS_yn';
+const SUPA_HEADERS = {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
 const SCOLS = ['Retornando', 'Manutenção', 'Disponível', 'Reservado'];
 const EDIT_PASS = 'mmc2026';
 
@@ -857,12 +859,35 @@ function clearCache() { localStorage.removeItem('mmc_cache');localStorage.remove
 async function api(body) {
   const action=body.action;
   if(action && action!=='getAll' && action!=='getHistory') clearCache();
-  if(body.machine) body={...body, machine:toS(body.machine)};
-  const url=API+'?payload='+encodeURIComponent(JSON.stringify(body))+'&_='+Date.now();
-  const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status);
-  const j=JSON.parse(await r.text());
-  if(action==='getAll' && j.data && Array.isArray(j.data)) j.data=j.data.map(fromS);
-  return j;
+  
+  if(action==='getAll'){
+    const r=await fetch(SUPA_URL+'/rest/v1/maquinas?select=*&order=id',{headers:SUPA_HEADERS});
+    const data=await r.json();
+    return {data: data.map(fromS)};
+  }
+  if(action==='getHistory'){
+    const r=await fetch(SUPA_URL+'/rest/v1/historico?select=*&order=id',{headers:SUPA_HEADERS});
+    return {data: await r.json()};
+  }
+  if(action==='add'){
+    const m=toS(body.machine);
+    await fetch(SUPA_URL+'/rest/v1/maquinas',{method:'POST',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify(m)});
+    // Add history
+    const now=new Date();
+    const sn={retornando:'Retornando',manutencao:'Manutenção',disponivel:'Disponível',reservado:'Reservado',locada:'Locada',obra_mmc:'Obra MMC',venda:'Venda',reforma:'Reforma',a_decidir:'A decidir'};
+    await fetch(SUPA_URL+'/rest/v1/historico',{method:'POST',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({timestamp:now.toISOString(),data:now.toISOString().slice(0,10),hora:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),maquina_id:m.id,maquina_nome:m.modelo||m.maquina||m.id,tipo:'status',descricao:'Máquina cadastrada — '+(sn[m.status]||m.status)})});
+    return {success:true};
+  }
+  if(action==='update'){
+    const m=toS(body.machine);
+    await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(m.id),{method:'PATCH',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify(m)});
+    return {success:true};
+  }
+  if(action==='delete'){
+    await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(body.id),{method:'DELETE',headers:SUPA_HEADERS});
+    return {success:true};
+  }
+  return {error:'ação inválida'};
 }
 
 /** Optimistic local update — apply change to M[] instantly, sync API in background */
