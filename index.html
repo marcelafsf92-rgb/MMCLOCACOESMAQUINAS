@@ -701,9 +701,9 @@
     <div class="frow"><div class="fg"><label>Modelo *</label><input id="fModelo" type="text" placeholder="Ex: Tesoura 26m"></div><div class="fg"><label>Nº Série</label><input id="fSerie" type="text" placeholder="Ex: 916946"></div></div>
     <div class="fg"><label>Marca</label><select id="fMarca"><option value="">Selecione...</option><option value="JLG">JLG</option><option value="Haulotte">Haulotte</option><option value="Genie">Genie</option><option value="Manitou">Manitou</option><option value="Skyjack">Skyjack</option><option value="Outra">Outra</option></select></div>
     <input id="fN" type="hidden" value="">
-    <div class="frow"><div class="fg"><label>Cliente Atual</label><input id="fCC" type="text" placeholder="Nome do cliente"></div><div class="fg"><label>Próximo Cliente</label><input id="fNC" type="text" placeholder="Próximo cliente"></div></div>
-    <div class="fg"><label>Data da Locação</label><input id="fDL" type="date"></div>
-    <div class="frow"><div class="fg"><label>Data de Retorno</label><input id="fDR" type="date"></div><div class="fg"><label>Data Próxima Locação</label><input id="fDN" type="date"></div></div>
+    <div class="frow"><div class="fg"><label id="lblFCC">Cliente Atual</label><input id="fCC" type="text" placeholder="Nome do cliente"></div><div class="fg"><label id="lblFNC">Próximo Cliente</label><input id="fNC" type="text" placeholder="Próximo cliente"></div></div>
+    <div class="fg"><label id="lblFDL">Data da Locação</label><input id="fDL" type="date"></div>
+    <div class="frow"><div class="fg"><label id="lblFDR">Data de Retorno</label><input id="fDR" type="date"></div><div class="fg"><label id="lblFDN">Data Próxima Locação</label><input id="fDN" type="date"></div></div>
     <div class="fg"><label>Observações</label><textarea id="fObs" rows="2" placeholder="Ex: necessita troca de bateria"></textarea></div>
     <div class="frow"><div class="fg"><label>Manutenção</label><select id="fM"><option value="Ok - revisada">Ok - revisada</option><option value="Em andamento">Em andamento</option><option value="Com defeito">Com defeito</option></select></div><div class="fg"><label>Status/Coluna</label><select id="fCol"><option value="Retornando">Retornando</option><option value="Manutenção">Em Manutenção</option><option value="Disponível">Disponível</option><option value="Reservado">Reservado</option><option value="Locada">Locada</option><option value="Obra MMC">Obra MMC Metálica</option><option value="Venda">Venda</option><option value="Reforma">Reforma</option><option value="A decidir">A decidir/avaliar</option></select></div></div>
   </div>
@@ -1035,6 +1035,7 @@ function cardH(m, showConfirm, showManut, showArrival) {
   const manutBadge=(showManut&&m.ms)?'<span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span>':'';
   const lbl1=m.column==='Reservado'?'Reservado para':(m.column==='Manutenção'||m.column==='Disponível')?'Último Cliente':'Cliente Atual';
   const lbl2=m.column==='Reservado'?'Data Entrega':'Próximo Cliente';
+  const val1=m.column==='Reservado'?esc(m.nc||'—'):esc(m.cc||'—');
   const val2=m.column==='Reservado'?(m.dn?fd(m.dn):'—'):esc(m.nc||'—');
   const obsHtml=m.column==='Manutenção'&&m.obs?'<div class="cf" style="grid-column:1/-1"><label>Observações</label><span style="font-size:11px">'+esc(m.obs)+'</span></div>':'';
   const cBtn=showConfirm?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega">'+IC.check+'</button>':'';
@@ -1052,7 +1053,7 @@ function cardH(m, showConfirm, showManut, showArrival) {
     +'<button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover">'+IC.del+'</button>'
     +'</div></div>'+manutBadge+overdueBadge(m)
     +'<div class="cgrid">'
-    +'<div class="cf"><label>'+lbl1+'</label><span class="'+(m.cc?'':'nil')+'">'+esc(m.cc||'—')+'</span></div>'
+    +'<div class="cf"><label>'+lbl1+'</label><span class="'+(val1==='—'?'nil':'')+'">'+val1+'</span></div>'
     +'<div class="cf"><label>'+lbl2+'</label><span class="'+(val2==='—'?'nil':'')+'">'+val2+'</span></div>'
     +'<div class="cf"><label>Retorno</label><span style="'+(isOverdue(m)?'color:#ef4444;font-weight:600':'')+'" class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
     +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
@@ -1221,8 +1222,17 @@ function closeCo(){cAction=null;document.getElementById('cBg').classList.remove(
 function cEnt(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
-  showCo('Confirmar Entrega','Confirmar que "'+label+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{
+  // Se veio do Reservado, mostra o cliente agendado; senão mensagem genérica
+  const cliFuturo=m.column==='Reservado'?(m.nc||'—'):(m.cc||'cliente');
+  const msg='Confirmar que "'+label+'" foi entregue'+(m.column==='Reservado'?' para "'+cliFuturo+'"':'')+'? Será movida para a aba Locadas.';
+  showCo('Confirmar Entrega',msg,'Confirmar','#10b981','#d1fae5',async()=>{
     const prev={...m};
+    // Migração Reservado → Locada: nc/dn viram cc/dl
+    if(m.column==='Reservado'){
+      if(m.nc) m.cc=m.nc;
+      if(m.dn) m.dl=m.dn;
+      m.nc=''; m.dn='';
+    }
     m.column='Locada';localUpdate(m);toast(label+' — Entrega confirmada!');
     try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
   });
@@ -1364,6 +1374,22 @@ async function doR() {
 // ── Modal: Add/Edit ──
 function oModal(title){document.getElementById('mT').textContent=title;document.getElementById('mBg').classList.add('open');setTimeout(()=>document.getElementById('fModelo').focus(),50)}
 function cModal(){document.getElementById('mBg').classList.remove('open');editId=null}
+
+// Ajusta labels do modal conforme o status selecionado.
+// Reservado: foco em "nc" (próximo cliente) + "dn" (data entrega futura).
+// Outros: fluxo padrão de Cliente Atual + Data Locação.
+function applyModalLabels(){
+  const st=document.getElementById('fCol').value;
+  const isRes=(st==='Reservado');
+  document.getElementById('lblFCC').textContent = isRes?'Último Cliente':'Cliente Atual';
+  document.getElementById('lblFNC').textContent = isRes?'Reservado para ★':'Próximo Cliente';
+  document.getElementById('lblFDN').textContent = isRes?'Data Entrega ★':'Data Próxima Locação';
+  document.getElementById('lblFDL').textContent = isRes?'Data Locação Anterior':'Data da Locação';
+  // destaca campos ativos em Reservado
+  document.getElementById('fNC').style.borderColor = isRes?'#F5A623':'';
+  document.getElementById('fDN').style.borderColor = isRes?'#F5A623':'';
+}
+
 function oAdd() {
   editId=null;
   ['fN','fCC','fNC','fModelo','fSerie'].forEach(i=>document.getElementById(i).value='');
@@ -1372,6 +1398,7 @@ function oAdd() {
   document.getElementById('fObs').value='';
   document.getElementById('fM').value='Ok - revisada';
   document.getElementById('fCol').value='Disponível';
+  applyModalLabels();
   oModal('Nova Máquina');
 }
 function oEdit(id) {
@@ -1388,6 +1415,7 @@ function oEdit(id) {
   document.getElementById('fObs').value=m.obs||'';
   document.getElementById('fM').value=m.ms||'Ok - revisada';
   document.getElementById('fCol').value=m.column||'Disponível';
+  applyModalLabels();
   oModal('Editar Máquina');
 }
 async function save() {
@@ -1598,6 +1626,7 @@ document.getElementById('hDateTo').addEventListener('change',renderHist);
 document.getElementById('mX').addEventListener('click',cModal);
 document.getElementById('mC').addEventListener('click',cModal);
 document.getElementById('mS').addEventListener('click',save);
+document.getElementById('fCol').addEventListener('change',applyModalLabels);
 document.getElementById('mBg').addEventListener('click',e=>{if(e.target===document.getElementById('mBg'))cModal()});
 document.getElementById('rX').addEventListener('click',closeR);
 document.getElementById('rCancel').addEventListener('click',closeR);
