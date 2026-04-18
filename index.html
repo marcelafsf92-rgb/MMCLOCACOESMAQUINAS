@@ -1033,12 +1033,15 @@ function cardH(m, showConfirm, showManut, showArrival) {
   const val2=m.column==='Reservado'?(m.dn?fd(m.dn):'—'):esc(m.nc||'—');
   const obsHtml=m.column==='Manutenção'&&m.obs?'<div class="cf" style="grid-column:1/-1"><label>Observações</label><span style="font-size:11px">'+esc(m.obs)+'</span></div>':'';
   const cBtn=showConfirm?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega">'+IC.check+'</button>':'';
+  // Card espelho "Retornando" (m._espelho=true) ganha: Confirmar Retorno + (se tem próximo) Confirmar Entrega Próximo
+  const retBtn=m._espelho?'<button class="cb cb-c" onclick="event.stopPropagation();cRet(\''+esc(m.id)+'\')" title="Confirmar Retorno" style="background:#10b981">'+IC.check+'</button>':'';
+  const nextBtn=(m._espelho&&m.nc&&m.dn)?'<button class="cb cb-c" onclick="event.stopPropagation();cNext(\''+esc(m.id)+'\')" title="Confirmar Entrega Próximo Cliente" style="background:#0ea5e9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>':'';
   const arrBtn=(showArrival&&!m._espelho)?'<button class="cb cb-c" onclick="event.stopPropagation();cArr(\''+esc(m.id)+'\')" title="Confirmar Chegada"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l4 4L13 5"/><path d="M11 9l4 4L21 5"/></svg></button>':'';
   return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div class="card-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="card-info"><div class="cname">'+title+espelho+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
-    +'</div><div class="cbtns">'+cBtn+arrBtn
+    +'</div><div class="cbtns">'+cBtn+retBtn+nextBtn+arrBtn
     +'<button class="cb cb-h" onclick="event.stopPropagation();showMaqHist(\''+esc(m.id)+'\')" title="Histórico">'+IC.hist+'</button>'
     +'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar">'+IC.edit+'</button>'
     +'<button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover">'+IC.del+'</button>'
@@ -1225,6 +1228,57 @@ function cArr(id) {
     const prev={...m};
     m.column='Manutenção';m.ms='Em andamento';m.dr='';
     localUpdate(m);toast(label+' — Chegada confirmada! Movida para Manutenção.');
+    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
+  });
+}
+
+// Confirma retorno da máquina que está em "Retornando" (card espelho da aba Status)
+// Se tem próximo cliente + data de próxima locação → vai direto pra Locada com os dados do próximo
+// Senão → volta pra Disponível
+function cRet(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;
+  const label=m.modelo||m.name||id;
+  const temProximo = m.nc && m.dn;
+  const msg = temProximo
+    ? '"'+label+'" retornou do cliente "'+(m.cc||'—')+'"? Será movida direto para Locada com o próximo cliente "'+m.nc+'".'
+    : '"'+label+'" retornou do cliente "'+(m.cc||'—')+'"? Será movida para Disponível.';
+  const titulo = temProximo ? 'Confirmar Retorno + Próxima Locação' : 'Confirmar Retorno';
+  showCo(titulo,msg,'Confirmar','#10b981','#d1fae5',async()=>{
+    const prev={...m};
+    if(temProximo){
+      // Move pra locada com dados do próximo cliente
+      m.column='Locada';
+      m.cc=m.nc;
+      m.dl=m.dn;
+      m.dr=''; // nova data de retorno será preenchida depois
+      m.nc='';
+      m.dn='';
+      localUpdate(m);toast(label+' — Retorno + Nova locação!');
+    } else {
+      m.column='Disponível';
+      m.cc=''; m.dl=''; m.dr='';
+      localUpdate(m);toast(label+' — Retorno confirmado, disponível!');
+    }
+    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
+  });
+}
+
+// Confirma entrega para o PRÓXIMO cliente (quando máquina está retornando mas já tem next agendado)
+// Pula a etapa de retorno e vai direto pra Locada com os dados do próximo
+function cNext(id) {
+  const m=M.find(x=>x.id===id);if(!m)return;
+  const label=m.modelo||m.name||id;
+  if(!m.nc||!m.dn){toast('Preencha próximo cliente e data antes.','err');return}
+  const msg='"'+label+'" foi entregue para o próximo cliente "'+m.nc+'"? A máquina passará direto para Locada.';
+  showCo('Confirmar Entrega Próximo Cliente',msg,'Confirmar','#10b981','#d1fae5',async()=>{
+    const prev={...m};
+    m.column='Locada';
+    m.cc=m.nc;
+    m.dl=m.dn;
+    m.dr='';
+    m.nc='';
+    m.dn='';
+    localUpdate(m);toast(label+' — Entregue ao próximo cliente!');
     try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
   });
 }
