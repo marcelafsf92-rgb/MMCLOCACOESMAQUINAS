@@ -857,39 +857,81 @@ function toS(m) {
 
 // ── API ──
 function clearCache() { localStorage.removeItem('mmc_cache');localStorage.removeItem('mmc_cache_ts'); }
+
+// Tracking de operações pendentes — bgSync não roda enquanto tem PATCH/POST/DELETE em andamento
+let pendingOps = 0;
+
+const STATUS_LABELS = {retornando:'Retornando',manutencao:'Manutenção',disponivel:'Disponível',reservado:'Reservado',locada:'Locada',obra_mmc:'Obra MMC',venda:'Venda',reforma:'Reforma',a_decidir:'A decidir'};
+
+async function logHist(maqId, maqNome, tipo, descricao) {
+  try {
+    const now=new Date();
+    await fetch(SUPA_URL+'/rest/v1/historico',{
+      method:'POST',
+      headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        timestamp:now.toISOString(),
+        data:now.toISOString().slice(0,10),
+        hora:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
+        maquina_id:maqId,
+        maquina_nome:maqNome||maqId,
+        tipo:tipo,
+        descricao:descricao
+      })
+    });
+    histLoaded=false; // força reload na próxima visita à aba
+  } catch(e){console.error('hist fail',e)}
+}
+
 async function api(body) {
   const action=body.action;
   if(action && action!=='getAll' && action!=='getHistory') clearCache();
-  
+
   if(action==='getAll'){
-    const r=await fetch(SUPA_URL+'/rest/v1/maquinas?select=*&order=id',{headers:SUPA_HEADERS});
+    const r=await fetch(SUPA_URL+'/rest/v1/maquinas?select=*&order=id',{headers:SUPA_HEADERS,cache:'no-store'});
     const data=await r.json();
     return {data: data.map(fromS)};
   }
   if(action==='getHistory'){
-    const r=await fetch(SUPA_URL+'/rest/v1/historico?select=*&order=id',{headers:SUPA_HEADERS});
+    const r=await fetch(SUPA_URL+'/rest/v1/historico?select=*&order=id',{headers:SUPA_HEADERS,cache:'no-store'});
     return {data: await r.json()};
   }
   if(action==='add'){
-    const m=toS(body.machine);
-    await fetch(SUPA_URL+'/rest/v1/maquinas',{method:'POST',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify(m)});
-    // Add history
-    const now=new Date();
-    const sn={retornando:'Retornando',manutencao:'Manutenção',disponivel:'Disponível',reservado:'Reservado',locada:'Locada',obra_mmc:'Obra MMC',venda:'Venda',reforma:'Reforma',a_decidir:'A decidir'};
-    await fetch(SUPA_URL+'/rest/v1/historico',{method:'POST',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({timestamp:now.toISOString(),data:now.toISOString().slice(0,10),hora:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),maquina_id:m.id,maquina_nome:m.modelo||m.maquina||m.id,tipo:'status',descricao:'Máquina cadastrada — '+(sn[m.status]||m.status)})});
-    return {success:true};
+    pendingOps++;
+    try {
+      const m=toS(body.machine);
+      const r=await fetch(SUPA_URL+'/rest/v1/maquinas',{method:'POST',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify(m)});
+      if(!r.ok){const err=await r.text();console.error('Add failed:',r.status,err);throw new Error('Add failed: '+r.status)}
+      await logHist(m.id, m.modelo||m.maquina, 'status', 'Máquina cadastrada — '+(STATUS_LABELS[m.status]||m.status));
+      return {success:true};
+    } finally { pendingOps--; }
   }
   if(action==='update'){
-    const m=toS(body.machine);
-    const r=await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(m.id),{method:'PATCH',headers:{...SUPA_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(m)});
-    if(!r.ok){const err=await r.text();console.error('Update failed:',r.status,err);throw new Error('Update failed')}
-    const result=await r.json();
-    console.log('Update result:',result);
-    return {success:true};
+    pendingOps++;
+    try {
+      const m=toS(body.machine);
+      const prev=body.prev ? toS(body.prev) : null;
+      const r=await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(m.id),{method:'PATCH',headers:{...SUPA_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(m)});
+      if(!r.ok){const err=await r.text();console.error('Update failed:',r.status,err);throw new Error('Update failed: '+r.status)}
+      const result=await r.json();
+      // Log histórico se mudou status, cliente ou manutenção
+      if(prev){
+        const nome=m.modelo||m.maquina||m.id;
+        if(prev.status!==m.status) await logHist(m.id,nome,'status','Status: '+(STATUS_LABELS[prev.status]||prev.status)+' → '+(STATUS_LABELS[m.status]||m.status));
+        if(prev.cliente_atual!==m.cliente_atual && m.cliente_atual) await logHist(m.id,nome,'cliente','Cliente: '+(prev.cliente_atual||'—')+' → '+m.cliente_atual);
+        if(prev.manutencao!==m.manutencao) await logHist(m.id,nome,'status','Manutenção: '+prev.manutencao+' → '+m.manutencao);
+      }
+      return {success:true, data:result};
+    } finally { pendingOps--; }
   }
   if(action==='delete'){
-    await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(body.id),{method:'DELETE',headers:SUPA_HEADERS});
-    return {success:true};
+    pendingOps++;
+    try {
+      const r=await fetch(SUPA_URL+'/rest/v1/maquinas?id=eq.'+encodeURIComponent(body.id),{method:'DELETE',headers:SUPA_HEADERS});
+      if(!r.ok){const err=await r.text();console.error('Delete failed:',r.status,err);throw new Error('Delete failed: '+r.status)}
+      if(body.nome) await logHist(body.id, body.nome, 'status', 'Máquina removida');
+      return {success:true};
+    } finally { pendingOps--; }
   }
   return {error:'ação inválida'};
 }
@@ -909,9 +951,12 @@ function localDelete(id) {
   localStorage.setItem('mmc_cache_ts',String(Date.now()));
   render();
 }
-/** Background sync — reload from API without blocking UI */
+/** Background sync — reload from API without blocking UI.
+ *  Pula se há operações pendentes (evita sobrescrever update que ainda não concluiu). */
 function bgSync() {
+  if(pendingOps>0){setTimeout(bgSync,600);return}
   api({action:'getAll'}).then(r=>{
+    if(pendingOps>0)return; // chegou resposta mas já surgiu nova op — descarta
     M=Array.isArray(r)?r:Array.isArray(r?.data)?r.data:[];
     localStorage.setItem('mmc_cache',JSON.stringify(M));
     localStorage.setItem('mmc_cache_ts',String(Date.now()));
@@ -1142,9 +1187,10 @@ SCOLS.forEach(col=>{
     const mid=dragId;dragId=null;dropping=true;
     const m=M.find(x=>x.id===mid);
     if(!m||m.column===col){dropping=false;return}
+    const prev={...m};
     const old=m.column;m.column=col;
     localUpdate(m);toast('Movida para "'+col+'"');
-    try{await api({action:'update',machine:m});bgSync()}
+    try{await api({action:'update',machine:m,prev});bgSync()}
     catch(er){console.error(er);m.column=old;localUpdate(m);toast('Erro ao salvar.','err')}
     finally{dropping=false}
   });
@@ -1167,17 +1213,19 @@ function cEnt(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
   showCo('Confirmar Entrega','Confirmar que "'+label+'" foi entregue ao cliente? Ela será movida para a aba Locadas.','Confirmar','#10b981','#d1fae5',async()=>{
+    const prev={...m};
     m.column='Locada';localUpdate(m);toast(label+' — Entrega confirmada!');
-    try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
+    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
   });
 }
 function cArr(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
   showCo('Confirmar Chegada','"'+label+'" chegou na oficina? Ela será movida para Em Manutenção para revisão.','Confirmar Chegada','#f59e0b','#fef3c7',async()=>{
+    const prev={...m};
     m.column='Manutenção';m.ms='Em andamento';m.dr='';
     localUpdate(m);toast(label+' — Chegada confirmada! Movida para Manutenção.');
-    try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
+    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
   });
 }
 let retId=null;
@@ -1192,20 +1240,22 @@ function iRet(id) {
 function closeRet(){document.getElementById('retBg').classList.remove('open');retId=null}
 async function doRet() {
   const m=M.find(x=>x.id===retId);if(!m)return;
+  const prev={...m};
   const label=m.modelo||m.name||retId;
   const newDr=document.getElementById('retDate').value;
   if(newDr) m.dr=newDr;
   m.column='Retornando';
   closeRet();localUpdate(m);toast(label+' — Retorno iniciado!');switchTab('status');
-  try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
+  try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
 }
 function iRetM(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
   showCo('Retorno da Obra','Iniciar retorno de "'+label+'" da obra da MMC Metálica? O campo cliente será limpo.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{
+    const prev={...m};
     m.column='Retornando';m.cc='';m.nc='';
     localUpdate(m);toast(label+' — Retorno da obra iniciado!');switchTab('status');
-    try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
+    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
   });
 }
 let undoActive=false;
@@ -1225,7 +1275,7 @@ function aDel(id) {
         catch{toast('Erro ao restaurar.','err')}
       }
     });
-    try{await api({action:'delete',id});bgSync();undoActive=false}catch{toast('Erro ao remover.','err');localUpdate(snapshot);undoActive=false}
+    try{await api({action:'delete',id,nome:label});bgSync();undoActive=false}catch{toast('Erro ao remover.','err');localUpdate(snapshot);undoActive=false}
   });
 }
 
@@ -1240,6 +1290,7 @@ function oRen(id) {
 function closeR(){document.getElementById('rBg').classList.remove('open');rId=null}
 async function doR() {
   const m=M.find(x=>x.id===rId);if(!m)return;
+  const prev={...m};
   const c=document.getElementById('rC').value.trim().toUpperCase();
   if(!c){toast('Informe o cliente.','err');return}
   m.cc=c;
@@ -1247,7 +1298,7 @@ async function doR() {
   if(ds)m.dl=ds;if(de)m.dr=de;
   const label=m.modelo||m.name||'';closeR();
   localUpdate(m);toast(label+' — Contrato renovado!');
-  try{await api({action:'update',machine:m});bgSync()}catch{toast('Erro.','err')}
+  try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
 }
 
 // ── Modal: Add/Edit ──
@@ -1297,15 +1348,23 @@ async function save() {
     obs:document.getElementById('fObs').value.trim().toUpperCase()
   };
   if(d.serie){const dup=M.find(x=>x.serie===d.serie&&x.id!==editId);if(dup){toast('Nº Série "'+d.serie+'" já existe: '+dup.modelo+' ('+dup.marca+')','err');return}}
-  const eid=editId;cModal();
+  const eid=editId;
+  const prev=eid?{...M.find(x=>x.id===eid)}:null;
+  const snapshot=prev?{...prev}:null;
+  cModal();
   if(eid){d.id=eid;localUpdate(d);toast('Atualizada!')}
   else{d.id=uid();localUpdate(d);toast('Adicionada!')}
   try{
-    if(eid) await api({action:'update',machine:d});
+    if(eid) await api({action:'update',machine:d,prev});
     else await api({action:'add',machine:d});
-    // Wait a moment for Supabase to process, then sync
-    setTimeout(()=>bgSync(),500);
-  }catch{toast('Erro ao salvar.','err')}
+    setTimeout(()=>bgSync(),800);
+  }catch(er){
+    console.error(er);
+    // Rollback: restaura snapshot
+    if(eid && snapshot) localUpdate(snapshot);
+    else if(!eid) localDelete(d.id);
+    toast('Erro ao salvar. Revertido.','err');
+  }
 }
 
 // ── History (BUG FIX #1: text now displays correctly) ──
