@@ -481,9 +481,11 @@
       border: 1px solid var(--glass-border);
       box-shadow: 0 2px 8px rgba(30,58,138,.06);
       display: flex; align-items: center; gap: 12px;
-      transition: transform .15s, box-shadow .15s;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
     }
-    .dash-card:hover { transform: translateY(-1px); box-shadow: var(--sh-m); }
+    .dash-card.clickable { cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .dash-card.clickable:hover { transform: translateY(-1px); box-shadow: var(--sh-m); border-color: var(--navy); }
+    .dash-card.clickable:active { transform: translateY(0); box-shadow: var(--sh-s); }
     .dash-icon {
       width: 40px; height: 40px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -632,27 +634,27 @@
 
 <!-- Dashboard -->
 <div class="dash" id="dashboard">
-  <div class="dash-card">
+  <div class="dash-card clickable" data-dash="total">
     <div class="dash-icon" style="background:#dbeafe;color:#1e40af"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
     <div><div class="dash-val" id="dTotal">0</div><div class="dash-lbl">Total</div></div>
   </div>
-  <div class="dash-card">
+  <div class="dash-card clickable" data-dash="locadas">
     <div class="dash-icon" style="background:#d1fae5;color:#065f46"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
     <div><div class="dash-val" id="dLocadas">0</div><div class="dash-lbl">Locadas</div></div>
   </div>
-  <div class="dash-card">
+  <div class="dash-card clickable" data-dash="disp">
     <div class="dash-icon" style="background:#fef3c7;color:#92400e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
     <div><div class="dash-val" id="dDisp">0</div><div class="dash-lbl">Disponíveis</div></div>
   </div>
-  <div class="dash-card">
+  <div class="dash-card clickable" data-dash="defeito">
     <div class="dash-icon" style="background:#fee2e2;color:#991b1b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
     <div><div class="dash-val" id="dDefeito">0</div><div class="dash-lbl">Com Defeito</div></div>
   </div>
-  <div class="dash-card">
+  <div class="dash-card clickable" data-dash="ocup">
     <div class="dash-icon" style="background:#ede9fe;color:#5b21b6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
     <div><div class="dash-val" id="dOcup">0%</div><div class="dash-lbl">Ocupação</div></div>
   </div>
-  <div class="dash-card" id="dAlertCard" style="display:none">
+  <div class="dash-card clickable" id="dAlertCard" data-dash="vencidos" style="display:none">
     <div class="dash-icon" style="background:#fee2e2;color:#ef4444"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
     <div><div class="dash-val" id="dVencidos" style="color:#ef4444">0</div><div class="dash-lbl">Retorno Vencido</div></div>
   </div>
@@ -1531,6 +1533,46 @@ document.getElementById('refreshBtn').addEventListener('click',()=>{
 });
 document.getElementById('btnAdd').addEventListener('click',oAdd);
 document.querySelectorAll('.tbtn').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
+
+// ── Dashboard Cards Clicáveis ──
+// Cada card filtra + navega pra aba correta
+function dashFilter(type){
+  const sI=document.getElementById('sI');
+  const fS=document.getElementById('fS');
+  const fMarca=document.getElementById('fMarcaFilter');
+  // Limpa filtros
+  sI.value=''; fMarca.value=''; fS.value='';
+  if(type==='total'){
+    switchTab('status');
+    toast('Mostrando todas as máquinas');
+  } else if(type==='locadas'){
+    switchTab('locadas');
+    toast('Aba Locadas');
+  } else if(type==='disp'){
+    switchTab('status');
+    // Foca na coluna Disponível via scroll
+    setTimeout(()=>{const el=document.getElementById('bd-Disponível');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},100);
+    toast('Disponíveis destacadas');
+  } else if(type==='defeito'){
+    switchTab('status');
+    fS.value='Com defeito';
+    render();
+    toast('Filtro: Com defeito');
+  } else if(type==='ocup'){
+    // Ocupação = vai pra locadas
+    switchTab('locadas');
+    toast('Taxa de ocupação atual');
+  } else if(type==='vencidos'){
+    switchTab('locadas');
+    // Destaca vencidos scrollando até o primeiro
+    setTimeout(()=>{const el=document.querySelector('.lcard[style*="fca5a5"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},100);
+    toast('Máquinas com retorno vencido');
+  }
+}
+document.querySelectorAll('.dash-card.clickable').forEach(c=>{
+  c.addEventListener('click',()=>dashFilter(c.dataset.dash));
+});
+
 let searchTimer=null;
 document.getElementById('sI').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(render,150)});
 document.getElementById('fS').addEventListener('change',render);
