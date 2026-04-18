@@ -1,7 +1,8 @@
 // MMC Painel — Service Worker
 // Cache estratégia: network-first para HTML, cache-first para assets
+// v2: BUGFIX — não cacheia Supabase (causava "salva mas volta ao valor antigo" no mobile)
 
-const CACHE_VERSION = 'mmc-v1';
+const CACHE_VERSION = 'mmc-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -42,12 +43,25 @@ self.addEventListener('activate', (event) => {
 // Fetch: network-first for API, cache-first for assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  
-  // Don't cache API calls (Apps Script) — always fresh
-  if (url.hostname.includes('script.google.com') || url.hostname.includes('googleusercontent.com')) {
-    return; // let browser handle normally
+
+  // NÃO cacheia chamadas de API — sempre buscar dados frescos do servidor
+  // (Supabase, Google Apps Script, BrasilAPI, Nominatim, OSRM)
+  if (
+    url.hostname.includes('supabase.co') ||
+    url.hostname.includes('script.google.com') ||
+    url.hostname.includes('googleusercontent.com') ||
+    url.hostname.includes('brasilapi.com.br') ||
+    url.hostname.includes('nominatim.openstreetmap.org') ||
+    url.hostname.includes('router.project-osrm.org')
+  ) {
+    return; // deixa o browser lidar normalmente, sem cache
   }
-  
+
+  // NÃO cacheia se não for GET (POST/PATCH/DELETE nunca entram em cache)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   // For navigation (HTML), try network first, fallback to cache
   if (event.request.mode === 'navigate') {
     event.respondWith(
@@ -55,7 +69,7 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  
+
   // For static assets, cache-first
   event.respondWith(
     caches.match(event.request).then((cached) => {
