@@ -1199,9 +1199,23 @@ SCOLS.forEach(col=>{
     if(!m||m.column===col){dropping=false;return}
     const prev={...m};
     const old=m.column;m.column=col;
+    // Limpeza automática de campos conforme novo status
+    // Disponível: zera cliente/datas de locação ativa e reseta manutenção (se estava OK no check)
+    if(col==='Disponível'){
+      m.cc=''; m.dl=''; m.dr='';
+      // Se veio de Manutenção e estava "Em andamento", assume que ficou OK
+      if(old==='Manutenção' && m.ms==='Em andamento') m.ms='Ok - revisada';
+    }
+    // Manutenção: marca como "Em andamento" e limpa dr (não faz sentido ter prazo de retorno)
+    if(col==='Manutenção'){
+      if(m.ms!=='Com defeito') m.ms='Em andamento';
+      m.dr='';
+    }
+    // Retornando: se não tem dr preenchido, não faz sentido — avisa
+    // (deixa passar, mas o card vai mostrar "—" na data de retorno)
     localUpdate(m);toast('Movida para "'+col+'"');
     try{await api({action:'update',machine:m,prev});bgSync()}
-    catch(er){console.error(er);m.column=old;localUpdate(m);toast('Erro ao salvar.','err')}
+    catch(er){console.error(er);Object.assign(m,prev);localUpdate(m);toast('Erro ao salvar.','err')}
     finally{dropping=false}
   });
 });
