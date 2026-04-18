@@ -996,7 +996,10 @@ function filt(list) {
   const marcaF=document.getElementById('fMarcaFilter').value;
   return list.filter(x=>{
     const qs=!q||[x.name,x.cc,x.nc,x.modelo,x.serie,x.marca,x.obs].some(v=>(v||'').toLowerCase().includes(q));
-    return qs && (!mF||x.ms===mF) && (!marcaF||x.marca===marcaF);
+    let dashOk=true;
+    if(dashActiveFilter==='disp') dashOk = (x.column==='Disponível');
+    else if(dashActiveFilter==='vencidos') dashOk = isOverdue(x);
+    return qs && (!mF||x.ms===mF) && (!marcaF||x.marca===marcaF) && dashOk;
   });
 }
 function isMarcelo(m) {
@@ -1060,7 +1063,8 @@ function cardH(m, showConfirm, showManut, showArrival) {
 function locH(m) {
   const title=esc(m.modelo||m.name||'—');
   const overdue=overdueBadge(m);
-  return '<div class="lcard"'+(isOverdue(m)?' style="border-color:#fca5a5"':'')+'><div class="lcard-top">'
+  const vencClass=isOverdue(m)?' vencido':'';
+  return '<div class="lcard'+vencClass+'"'+(isOverdue(m)?' style="border-color:#fca5a5"':'')+'><div class="lcard-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="lcard-info"><div class="cname">'+title+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
@@ -1535,38 +1539,48 @@ document.getElementById('btnAdd').addEventListener('click',oAdd);
 document.querySelectorAll('.tbtn').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
 
 // ── Dashboard Cards Clicáveis ──
-// Cada card filtra + navega pra aba correta
+// Estado do filtro ativo vindo do dashboard (aplica em cima dos filtros manuais)
+let dashActiveFilter = null; // null | 'vencidos' | 'disp' | 'locadas' | 'defeito'
+
 function dashFilter(type){
   const sI=document.getElementById('sI');
   const fS=document.getElementById('fS');
   const fMarca=document.getElementById('fMarcaFilter');
-  // Limpa filtros
+  // Limpa filtros manuais + filtro dashboard anterior
   sI.value=''; fMarca.value=''; fS.value='';
+  dashActiveFilter=null;
+
   if(type==='total'){
     switchTab('status');
-    toast('Mostrando todas as máquinas');
+    render();
+    toast('Todas as máquinas');
   } else if(type==='locadas'){
     switchTab('locadas');
-    toast('Aba Locadas');
+    toast('Locadas');
   } else if(type==='disp'){
     switchTab('status');
-    // Foca na coluna Disponível via scroll
-    setTimeout(()=>{const el=document.getElementById('bd-Disponível');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},100);
-    toast('Disponíveis destacadas');
+    dashActiveFilter='disp';
+    render();
+    setTimeout(()=>{const el=document.getElementById('bd-Disponível');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},150);
+    toast('Filtro: Disponíveis');
   } else if(type==='defeito'){
     switchTab('status');
     fS.value='Com defeito';
     render();
-    toast('Filtro: Com defeito');
+    toast('Filtro: Com defeito ('+M.filter(m=>m.ms==='Com defeito').length+')');
   } else if(type==='ocup'){
-    // Ocupação = vai pra locadas
     switchTab('locadas');
-    toast('Taxa de ocupação atual');
+    toast('Ocupação: '+document.getElementById('dOcup').textContent);
   } else if(type==='vencidos'){
     switchTab('locadas');
-    // Destaca vencidos scrollando até o primeiro
-    setTimeout(()=>{const el=document.querySelector('.lcard[style*="fca5a5"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},100);
-    toast('Máquinas com retorno vencido');
+    dashActiveFilter='vencidos';
+    render();
+    // Scroll até primeiro card com classe de vencido
+    setTimeout(()=>{
+      const el=document.querySelector('.lcard.vencido');
+      if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+    },150);
+    toast('Retornos vencidos destacados');
   }
 }
 document.querySelectorAll('.dash-card.clickable').forEach(c=>{
@@ -1574,9 +1588,9 @@ document.querySelectorAll('.dash-card.clickable').forEach(c=>{
 });
 
 let searchTimer=null;
-document.getElementById('sI').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(render,150)});
-document.getElementById('fS').addEventListener('change',render);
-document.getElementById('fMarcaFilter').addEventListener('change',render);
+document.getElementById('sI').addEventListener('input',()=>{dashActiveFilter=null;clearTimeout(searchTimer);searchTimer=setTimeout(render,150)});
+document.getElementById('fS').addEventListener('change',()=>{dashActiveFilter=null;render()});
+document.getElementById('fMarcaFilter').addEventListener('change',()=>{dashActiveFilter=null;render()});
 document.getElementById('hMaqFilter').addEventListener('change',renderHist);
 document.getElementById('hActionFilter').addEventListener('change',renderHist);
 document.getElementById('hDateFrom').addEventListener('change',renderHist);
