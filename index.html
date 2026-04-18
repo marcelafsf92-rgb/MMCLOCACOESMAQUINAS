@@ -1600,15 +1600,30 @@ function dashFilter(type){
     switchTab('locadas');
     toast('Ocupação: '+document.getElementById('dOcup').textContent);
   } else if(type==='vencidos'){
-    switchTab('locadas');
+    // Retorno vencido pode estar em Locada, Retornando ou Obra MMC
+    // Identifica onde estão e direciona pra aba correta
+    const today=new Date().toISOString().slice(0,10);
+    const venc=M.filter(m=>m.dr&&m.dr<today&&(m.column==='Locada'||m.column==='Retornando'||m.column==='Obra MMC'));
+    if(!venc.length){ toast('Nenhum retorno vencido'); return; }
+    // Conta por categoria e vai pra aba com mais vencidos
+    const porLocada=venc.filter(m=>m.column==='Locada'&&!isMarcelo(m)).length;
+    const porObra=venc.filter(m=>m.column==='Obra MMC'||isMarcelo(m)).length;
+    const porRet=venc.filter(m=>m.column==='Retornando').length;
+    let destino='locadas';
+    if(porObra>porLocada&&porObra>=porRet) destino='obras';
+    else if(porRet>porLocada&&porRet>porObra) destino='status';
     dashActiveFilter='vencidos';
+    switchTab(destino);
     render();
-    // Scroll até primeiro card com classe de vencido
     setTimeout(()=>{
-      const el=document.querySelector('.lcard.vencido');
-      if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
-    },150);
-    toast('Retornos vencidos destacados');
+      const el=document.querySelector('.lcard.vencido,.card .alert-badge');
+      if(el) (el.closest('.lcard,.card')||el).scrollIntoView({behavior:'smooth',block:'center'});
+    },200);
+    const partes=[];
+    if(porLocada) partes.push(porLocada+' locada(s)');
+    if(porObra) partes.push(porObra+' obra MMC');
+    if(porRet) partes.push(porRet+' retornando');
+    toast(venc.length+' vencido(s): '+partes.join(', '));
   }
 }
 document.querySelectorAll('.dash-card.clickable').forEach(c=>{
