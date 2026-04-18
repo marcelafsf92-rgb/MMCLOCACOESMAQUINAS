@@ -1338,9 +1338,12 @@ async function doRet() {
 function iRetM(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
-  showCo('Retorno da Obra','Iniciar retorno de "'+label+'" da obra da MMC Metálica? O campo cliente será limpo.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{
+  showCo('Retorno da Obra','Iniciar retorno de "'+label+'" da obra MMC Metálica? Quando chegar, confirme o retorno no card da aba Status.','Iniciar Retorno','#f59e0b','#fef3c7',async()=>{
     const prev={...m};
-    m.column='Retornando';m.cc='';m.nc='';
+    // Apenas marca como Retornando. Cliente (cc) é limpo só no Confirmar Retorno (cRet).
+    // Se dr não existir, define hoje como prazo de retorno (senão não aparece em vencidos).
+    if(!m.dr) m.dr=new Date().toISOString().slice(0,10);
+    m.column='Retornando';
     localUpdate(m);toast(label+' — Retorno da obra iniciado!');switchTab('status');
     try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
   });
@@ -1453,6 +1456,24 @@ async function save() {
     obs:document.getElementById('fObs').value.trim().toUpperCase()
   };
   if(d.serie){const dup=M.find(x=>x.serie===d.serie&&x.id!==editId);if(dup){toast('Nº Série "'+d.serie+'" já existe: '+dup.modelo+' ('+dup.marca+')','err');return}}
+
+  // ── Validações por status ──
+  // dr anterior a dl não faz sentido
+  if(d.dl && d.dr && d.dr < d.dl){
+    toast('Data de retorno não pode ser anterior à data de locação.','err');return;
+  }
+  // dn anterior a dr não faz sentido (próxima locação antes do retorno atual)
+  if(d.dr && d.dn && d.dn < d.dr){
+    toast('Data da próxima locação não pode ser anterior ao retorno.','err');return;
+  }
+  // Locada e Obra MMC precisam ter cliente e data de locação
+  if((d.column==='Locada'||d.column==='Obra MMC')&&(!d.cc||!d.dl)){
+    toast('Máquina em '+d.column+' precisa de cliente e data de locação.','err');return;
+  }
+  // Reservado precisa ter nc e dn
+  if(d.column==='Reservado'&&(!d.nc||!d.dn)){
+    toast('Reservado precisa de "Reservado para" e "Data Entrega".','err');return;
+  }
   const eid=editId;
   const prev=eid?{...M.find(x=>x.id===eid)}:null;
   const snapshot=prev?{...prev}:null;
