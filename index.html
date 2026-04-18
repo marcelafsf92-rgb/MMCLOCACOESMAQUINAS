@@ -1003,7 +1003,7 @@ function filt(list) {
   });
 }
 function isMarcelo(m) {
-  const c=((m.cc||'')+' '+(m.nc||'')).toLowerCase();
+  const c=(m.cc||'').toLowerCase();
   return c.includes('obra mmc')||c.includes('mmc metalica')||c.includes('obras mmc')||c.includes('mmc metálica');
 }
 
@@ -1042,15 +1042,14 @@ function cardH(m, showConfirm, showManut, showArrival) {
   const val2=m.column==='Reservado'?(m.dn?fd(m.dn):'—'):esc(m.nc||'—');
   const obsHtml=m.column==='Manutenção'&&m.obs?'<div class="cf" style="grid-column:1/-1"><label>Observações</label><span style="font-size:11px">'+esc(m.obs)+'</span></div>':'';
   const cBtn=showConfirm?'<button class="cb cb-c" onclick="event.stopPropagation();cEnt(\''+esc(m.id)+'\')" title="Confirmar Entrega">'+IC.check+'</button>':'';
-  // Card espelho "Retornando" (m._espelho=true) ganha: Confirmar Retorno + (se tem próximo) Confirmar Entrega Próximo
+  // Card espelho "Retornando" (m._espelho=true) ganha: Confirmar Retorno (cobre caso com ou sem próximo)
   const retBtn=m._espelho?'<button class="cb cb-c" onclick="event.stopPropagation();cRet(\''+esc(m.id)+'\')" title="Confirmar Retorno" style="background:#10b981">'+IC.check+'</button>':'';
-  const nextBtn=(m._espelho&&m.nc&&m.dn)?'<button class="cb cb-c" onclick="event.stopPropagation();cNext(\''+esc(m.id)+'\')" title="Confirmar Entrega Próximo Cliente" style="background:#0ea5e9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>':'';
   const arrBtn=(showArrival&&!m._espelho)?'<button class="cb cb-c" onclick="event.stopPropagation();cArr(\''+esc(m.id)+'\')" title="Confirmar Chegada"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l4 4L13 5"/><path d="M11 9l4 4L21 5"/></svg></button>':'';
   return '<div class="card" data-id="'+esc(m.id)+'" draggable="true"><div class="card-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="card-info"><div class="cname">'+title+espelho+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
-    +'</div><div class="cbtns">'+cBtn+retBtn+nextBtn+arrBtn
+    +'</div><div class="cbtns">'+cBtn+retBtn+arrBtn
     +'<button class="cb cb-h" onclick="event.stopPropagation();showMaqHist(\''+esc(m.id)+'\')" title="Histórico">'+IC.hist+'</button>'
     +'<button class="cb cb-e" onclick="event.stopPropagation();oEdit(\''+esc(m.id)+'\')" title="Editar">'+IC.edit+'</button>'
     +'<button class="cb cb-d" onclick="event.stopPropagation();aDel(\''+esc(m.id)+'\')" title="Remover">'+IC.del+'</button>'
@@ -1203,19 +1202,23 @@ SCOLS.forEach(col=>{
     const prev={...m};
     const old=m.column;m.column=col;
     // Limpeza automática de campos conforme novo status
-    // Disponível: zera cliente/datas de locação ativa e reseta manutenção (se estava OK no check)
     if(col==='Disponível'){
       m.cc=''; m.dl=''; m.dr='';
-      // Se veio de Manutenção e estava "Em andamento", assume que ficou OK
       if(old==='Manutenção' && m.ms==='Em andamento') m.ms='Ok - revisada';
     }
-    // Manutenção: marca como "Em andamento" e limpa dr (não faz sentido ter prazo de retorno)
     if(col==='Manutenção'){
       if(m.ms!=='Com defeito') m.ms='Em andamento';
       m.dr='';
     }
-    // Retornando: se não tem dr preenchido, não faz sentido — avisa
-    // (deixa passar, mas o card vai mostrar "—" na data de retorno)
+    // Reservado: exige nc+dn — se faltar, abre modal pra preencher
+    if(col==='Reservado' && (!m.nc || !m.dn)){
+      localUpdate(m);
+      try{await api({action:'update',machine:m,prev})}catch{}
+      dropping=false;
+      toast('Preencha o cliente e data de entrega.','err');
+      setTimeout(()=>oEdit(m.id),200);
+      return;
+    }
     localUpdate(m);toast('Movida para "'+col+'"');
     try{await api({action:'update',machine:m,prev});bgSync()}
     catch(er){console.error(er);Object.assign(m,prev);localUpdate(m);toast('Erro ao salvar.','err')}
@@ -1283,10 +1286,12 @@ function cRet(id) {
       m.column='Locada';
       m.cc=m.nc;
       m.dl=m.dn;
-      m.dr=''; // nova data de retorno será preenchida depois
+      m.dr=''; // preenchida pelo modal de prazo
       m.nc='';
       m.dn='';
-      localUpdate(m);toast(label+' — Retorno + Nova locação!');
+      localUpdate(m);
+      // Fix 2: pedir data de retorno da nova locação (senão fica Locada sem prazo)
+      pedirDataRetorno(m.id, label);
     } else {
       m.column='Disponível';
       m.cc=''; m.dl=''; m.dr='';
@@ -1296,24 +1301,22 @@ function cRet(id) {
   });
 }
 
-// Confirma entrega para o PRÓXIMO cliente (quando máquina está retornando mas já tem next agendado)
-// Pula a etapa de retorno e vai direto pra Locada com os dados do próximo
-function cNext(id) {
-  const m=M.find(x=>x.id===id);if(!m)return;
-  const label=m.modelo||m.name||id;
-  if(!m.nc||!m.dn){toast('Preencha próximo cliente e data antes.','err');return}
-  const msg='"'+label+'" foi entregue para o próximo cliente "'+m.nc+'"? A máquina passará direto para Locada.';
-  showCo('Confirmar Entrega Próximo Cliente',msg,'Confirmar','#10b981','#d1fae5',async()=>{
-    const prev={...m};
-    m.column='Locada';
-    m.cc=m.nc;
-    m.dl=m.dn;
-    m.dr='';
-    m.nc='';
-    m.dn='';
-    localUpdate(m);toast(label+' — Entregue ao próximo cliente!');
-    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
-  });
+// Modal simples pedindo data de retorno ao migrar para nova Locada
+function pedirDataRetorno(id, label){
+  const hoje=new Date().toISOString().slice(0,10);
+  const d=prompt('Nova locação de "'+label+'". Qual a data de retorno prevista? (AAAA-MM-DD)', '');
+  if(d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=hoje){
+    const m=M.find(x=>x.id===id);
+    if(m){
+      const prev={...m};
+      m.dr=d;
+      localUpdate(m);
+      api({action:'update',machine:m,prev}).then(()=>bgSync()).catch(()=>toast('Erro ao salvar data.','err'));
+      toast(label+' — Nova locação até '+fd(d));
+    }
+  } else {
+    toast(label+' — Locada! Lembre de preencher a data de retorno.','err');
+  }
 }
 let retId=null;
 function iRet(id) {
