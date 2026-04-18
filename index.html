@@ -1008,8 +1008,11 @@ function isMarcelo(m) {
 }
 
 // ── Overdue check ──
+// Só faz sentido falar em atraso quando a máquina está efetivamente com cliente (Locada, Retornando, Obra MMC).
+// Manutenção/Disponível/Reservado/Venda/Reforma/A decidir não têm retorno "em atraso".
 function isOverdue(m) {
   if(!m.dr) return false;
+  if(m.column!=='Locada' && m.column!=='Retornando' && m.column!=='Obra MMC') return false;
   return m.dr < new Date().toISOString().slice(0,10);
 }
 function overdueBadge(m) {
