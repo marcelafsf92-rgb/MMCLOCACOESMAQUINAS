@@ -1211,9 +1211,10 @@ SCOLS.forEach(col=>{
       m.dr='';
     }
     // Reservado: exige nc+dn — se faltar, abre modal pra preencher
+    // NÃO salva no servidor aqui (estado inválido). Card move visualmente; save() real acontece quando
+    // o usuário submeter o modal com nc+dn preenchidos. Se cancelar, bgSync reverte visualmente.
     if(col==='Reservado' && (!m.nc || !m.dn)){
       localUpdate(m);
-      try{await api({action:'update',machine:m,prev})}catch{}
       dropping=false;
       toast('Preencha o cliente e data de entrega.','err');
       setTimeout(()=>oEdit(m.id),200);
@@ -1242,6 +1243,14 @@ function closeCo(){cAction=null;document.getElementById('cBg').classList.remove(
 function cEnt(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
   const label=m.modelo||m.name||id;
+  // Bloqueia se Reservado tem data de entrega no passado — senão Locada "nasce vencida"
+  if(m.column==='Reservado' && m.dn){
+    const hoje=new Date().toISOString().slice(0,10);
+    if(m.dn<hoje){
+      toast('Data de entrega ('+fd(m.dn)+') já passou. Edite a máquina antes de confirmar.','err');
+      return;
+    }
+  }
   // Se veio do Reservado, mostra o cliente agendado; senão mensagem genérica
   const cliFuturo=m.column==='Reservado'?(m.nc||'—'):(m.cc||'cliente');
   const msg='Confirmar que "'+label+'" foi entregue'+(m.column==='Reservado'?' para "'+cliFuturo+'"':'')+'? Será movida para a aba Locadas.';
@@ -1254,7 +1263,7 @@ function cEnt(id) {
       m.nc=''; m.dn='';
     }
     m.column='Locada';localUpdate(m);toast(label+' — Entrega confirmada!');
-    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
+    try{await api({action:'update',machine:m,prev});bgSync()}catch{Object.assign(m,prev);localUpdate(m);toast('Erro ao salvar.','err')}
   });
 }
 function cArr(id) {
@@ -1269,7 +1278,7 @@ function cArr(id) {
 }
 
 // Confirma retorno da máquina que está em "Retornando" (card espelho da aba Status)
-// Se tem próximo cliente + data de próxima locação → vai direto pra Locada com os dados do próximo
+// Se tem próximo cliente + data de próxima locação → pede data retorno, depois migra pra Locada
 // Senão → volta pra Disponível
 function cRet(id) {
   const m=M.find(x=>x.id===id);if(!m)return;
@@ -1282,41 +1291,29 @@ function cRet(id) {
   showCo(titulo,msg,'Confirmar','#10b981','#d1fae5',async()=>{
     const prev={...m};
     if(temProximo){
-      // Move pra locada com dados do próximo cliente
+      // Pede a nova data de retorno ANTES de migrar. Se cancelar/inválido, máquina permanece em Retornando
+      // (fix: antes, prompt cancelado deixava máquina Locada com dr='' — invisível ao isOverdue).
+      const hoje=new Date().toISOString().slice(0,10);
+      const d=prompt('Nova locação de "'+label+'" para "'+m.nc+'".\nData de retorno prevista (AAAA-MM-DD):', '');
+      if(!d || !/^\d{4}-\d{2}-\d{2}$/.test(d) || d<hoje){
+        toast('Nova locação cancelada — data inválida. Máquina continua em Retornando.','err');
+        return;
+      }
+      // Migra para Locada com dados do próximo cliente + nova dr validada
       m.column='Locada';
       m.cc=m.nc;
       m.dl=m.dn;
-      m.dr=''; // preenchida pelo modal de prazo
+      m.dr=d;
       m.nc='';
       m.dn='';
-      localUpdate(m);
-      // Fix 2: pedir data de retorno da nova locação (senão fica Locada sem prazo)
-      pedirDataRetorno(m.id, label);
+      localUpdate(m);toast(label+' — Nova locação até '+fd(d));
     } else {
       m.column='Disponível';
       m.cc=''; m.dl=''; m.dr='';
       localUpdate(m);toast(label+' — Retorno confirmado, disponível!');
     }
-    try{await api({action:'update',machine:m,prev});bgSync()}catch{toast('Erro.','err')}
+    try{await api({action:'update',machine:m,prev});bgSync()}catch{Object.assign(m,prev);localUpdate(m);toast('Erro ao salvar.','err')}
   });
-}
-
-// Modal simples pedindo data de retorno ao migrar para nova Locada
-function pedirDataRetorno(id, label){
-  const hoje=new Date().toISOString().slice(0,10);
-  const d=prompt('Nova locação de "'+label+'". Qual a data de retorno prevista? (AAAA-MM-DD)', '');
-  if(d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=hoje){
-    const m=M.find(x=>x.id===id);
-    if(m){
-      const prev={...m};
-      m.dr=d;
-      localUpdate(m);
-      api({action:'update',machine:m,prev}).then(()=>bgSync()).catch(()=>toast('Erro ao salvar data.','err'));
-      toast(label+' — Nova locação até '+fd(d));
-    }
-  } else {
-    toast(label+' — Locada! Lembre de preencher a data de retorno.','err');
-  }
 }
 let retId=null;
 function iRet(id) {
