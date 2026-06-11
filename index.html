@@ -1010,14 +1010,20 @@ function isMarcelo(m) {
 // ── Overdue check ──
 // Só faz sentido falar em atraso quando a máquina está efetivamente com cliente (Locada, Retornando, Obra MMC).
 // Manutenção/Disponível/Reservado/Venda/Reforma/A decidir não têm retorno "em atraso".
+// Data de hoje no fuso LOCAL (toISOString é UTC e às 21h-00h BRT já viraria o dia seguinte)
+function hojeLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function isOverdue(m) {
   if(!m.dr) return false;
   if(m.column!=='Locada' && m.column!=='Retornando' && m.column!=='Obra MMC') return false;
-  return m.dr < new Date().toISOString().slice(0,10);
+  return m.dr < hojeLocal();
 }
 function overdueBadge(m) {
   if(!isOverdue(m)) return '';
-  const days=Math.floor((new Date()-new Date(m.dr))/(1000*60*60*24));
+  // Parse local (new Date('YYYY-MM-DD') seria UTC midnight = 21h do dia anterior em BRT)
+  const [y,mo,d]=m.dr.split('-').map(Number);
+  const ret=new Date(y,mo-1,d);
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const days=Math.round((hoje-ret)/(1000*60*60*24));
   return '<span class="alert-badge">⚠ '+days+'d atraso</span>';
 }
 
@@ -1360,9 +1366,14 @@ function aDel(id) {
       label:'Desfazer',
       fn: async()=>{
         undoActive=false;
-        localUpdate(snapshot);
-        try{await api({action:'add',machine:snapshot});bgSync();toast(label+' restaurada!')}
+        pendingOps++; // impede bgSync in-flight de sobrescrever o snapshot restaurado
+        try{
+          localUpdate(snapshot);
+          await api({action:'add',machine:snapshot});
+          toast(label+' restaurada!');
+        }
         catch{toast('Erro ao restaurar.','err')}
+        finally{pendingOps--;bgSync()}
       }
     });
     try{await api({action:'delete',id,nome:label});bgSync();undoActive=false}catch{toast('Erro ao remover.','err');localUpdate(snapshot);undoActive=false}
