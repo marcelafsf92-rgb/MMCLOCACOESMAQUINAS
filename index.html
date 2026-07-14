@@ -503,6 +503,12 @@
       padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
       background: #ef4444; color: #fff; animation: pulse 1.5s ease-in-out infinite;
     }
+    /* Locada sem data de retorno — nunca vira "vencida", entao fica invisivel ao alerta. Este badge a torna visivel. */
+    .nodate-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
+      background: #f59e0b; color: #fff;
+    }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
 
     /* ===== EDITOR MODE ===== */
@@ -657,6 +663,10 @@
   <div class="dash-card clickable" id="dAlertCard" data-dash="vencidos" style="display:none">
     <div class="dash-icon" style="background:#fee2e2;color:#ef4444"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
     <div><div class="dash-val" id="dVencidos" style="color:#ef4444">0</div><div class="dash-lbl">Retorno Vencido</div></div>
+  </div>
+  <div class="dash-card clickable" id="dSemDataCard" data-dash="semdata" style="display:none">
+    <div class="dash-icon" style="background:#fef3c7;color:#f59e0b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="12" y1="14" x2="12" y2="14"/></svg></div>
+    <div><div class="dash-val" id="dSemData" style="color:#f59e0b">0</div><div class="dash-lbl">Sem Data Retorno</div></div>
   </div>
 </div>
 
@@ -999,6 +1009,7 @@ function filt(list) {
     let dashOk=true;
     if(dashActiveFilter==='disp') dashOk = (x.column==='Disponível');
     else if(dashActiveFilter==='vencidos') dashOk = isOverdue(x);
+    else if(dashActiveFilter==='semdata') dashOk = semDataRetorno(x);
     return qs && (!mF||x.ms===mF) && (!marcaF||x.marca===marcaF) && dashOk;
   });
 }
@@ -1025,6 +1036,14 @@ function overdueBadge(m) {
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const days=Math.round((hoje-ret)/(1000*60*60*24));
   return '<span class="alert-badge">⚠ '+days+'d atraso</span>';
+}
+// Locada (ou obra) SEM data de retorno preenchida — precisa preencher pra entrar no radar de vencidos
+function semDataRetorno(m){
+  return (m.column==='Locada'||m.column==='Obra MMC') && !m.dr;
+}
+function semDataBadge(m){
+  if(!semDataRetorno(m)) return '';
+  return '<span class="nodate-badge">⚠ Sem data de retorno</span>';
 }
 
 // ── SVG Icons ──
@@ -1078,12 +1097,12 @@ function locH(m) {
     +'<div class="lcard-info"><div class="cname">'+title+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
     +'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'
-    +overdue
+    +overdue+semDataBadge(m)
     +'<div class="cgrid">'
     +'<div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div>'
     +'<div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div>'
     +'<div class="cf"><label>Data Locação</label><span>'+(m.dl?fd(m.dl):'—')+'</span></div>'
-    +'<div class="cf"><label>Retorno Previsto</label><span style="'+(isOverdue(m)?'color:#ef4444;font-weight:600':'')+'" class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
+    +'<div class="cf"><label>Retorno Previsto</label><span style="'+(isOverdue(m)?'color:#ef4444;font-weight:600':semDataRetorno(m)?'color:#f59e0b;font-weight:600':'')+'" class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'⚠ preencher')+'</span></div>'
     +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
     +'</div>'
     +'<div class="lacts">'
@@ -1102,6 +1121,7 @@ function marcH(m) {
     +'<div class="lcard-info"><div class="cname">'+title+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
     +'</div><span class="mb '+mc(m.ms)+'">'+esc(m.ms)+'</span></div>'
+    +overdueBadge(m)+semDataBadge(m)
     +'<div class="cgrid">'
     +'<div class="cf"><label>Cliente</label><span>'+esc(m.cc||'—')+'</span></div>'
     +'<div class="cf"><label>Status</label><span>'+esc(m.column)+'</span></div>'
@@ -1165,6 +1185,11 @@ function render() {
   const alertCard=document.getElementById('dAlertCard');
   if(vencidos.length){alertCard.style.display='flex';document.getElementById('dVencidos').textContent=vencidos.length}
   else{alertCard.style.display='none'}
+  // Locadas/Obra sem data de retorno preenchida (nunca aparecem em vencidos — ficam invisiveis sem este alerta)
+  const semData=M.filter(m=>semDataRetorno(m));
+  const semDataCard=document.getElementById('dSemDataCard');
+  if(semData.length){semDataCard.style.display='flex';document.getElementById('dSemData').textContent=semData.length}
+  else{semDataCard.style.display='none'}
 
   // Kanban
   const sf=filt(sm);
@@ -1673,6 +1698,18 @@ function dashFilter(type){
     if(porObra) partes.push(porObra+' obra MMC');
     if(porRet) partes.push(porRet+' retornando');
     toast(venc.length+' vencido(s): '+partes.join(', '));
+  } else if(type==='semdata'){
+    const sem=M.filter(m=>semDataRetorno(m));
+    if(!sem.length){ toast('Todas com data de retorno preenchida ✓'); return; }
+    const emLocada=sem.filter(m=>m.column==='Locada'&&!isMarcelo(m)).length;
+    const emObra=sem.filter(m=>m.column==='Obra MMC'||isMarcelo(m)).length;
+    dashActiveFilter='semdata';
+    switchTab(emObra>emLocada?'obras':'locadas');
+    render();
+    const p=[];
+    if(emLocada) p.push(emLocada+' locada(s)');
+    if(emObra) p.push(emObra+' obra MMC');
+    toast(sem.length+' sem data de retorno: '+p.join(', ')+' — preencher!');
   }
 }
 document.querySelectorAll('.dash-card.clickable').forEach(c=>{
