@@ -2,7 +2,7 @@
 // Cache estratégia: network-first para HTML, cache-first para assets
 // v2: BUGFIX — não cacheia Supabase (causava "salva mas volta ao valor antigo" no mobile)
 
-const CACHE_VERSION = 'mmc-v2';
+const CACHE_VERSION = 'mmc-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -52,7 +52,8 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('googleusercontent.com') ||
     url.hostname.includes('brasilapi.com.br') ||
     url.hostname.includes('nominatim.openstreetmap.org') ||
-    url.hostname.includes('router.project-osrm.org')
+    url.hostname.includes('router.project-osrm.org') ||
+    url.hostname.includes('mmc-rastreio')
   ) {
     return; // deixa o browser lidar normalmente, sem cache
   }

@@ -791,6 +791,12 @@ const MARCA_BG = { JLG:'#F26522', Haulotte:'#1a1a1a', Genie:'#0057A0', Manitou:'
 
 // ── Utils ──
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// ── Última posição (do rastreio) por máquina, casada pelo id do cadastro ──
+const RASTREIO_URL='https://mmc-rastreio.vercel.app';
+let posByRow={};
+function haQ(min){if(min==null)return'sem sinal';if(min<0)min=0;if(min<1)return'agora';if(min<60)return'há '+min+' min';const h=Math.floor(min/60);if(h<24)return'há '+h+'h';const d=Math.floor(h/24);if(d<30)return'há '+d+'d';return'há '+Math.floor(d/30)+' meses'}
+function posBadge(id){const p=posByRow['maquinas:'+id];if(!p)return'';const cor=p.stale?'#f59e0b':(p.vel>0?'#10b981':'#6b7280');return '<div style="margin-top:8px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">'+'<span style="display:inline-flex;align-items:center;gap:5px;color:'+cor+';font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:'+cor+'"></span>📍 '+haQ(p.min)+(p.vel>0?(' · '+p.vel+' km/h'):'')+'</span>'+'<a href="'+RASTREIO_URL+'/?focus='+encodeURIComponent(id)+'" target="_blank" rel="noopener" style="color:var(--navy);text-decoration:none;font-weight:600">ver no mapa →</a></div>'}
+async function loadPos(){try{const j=await(await fetch(RASTREIO_URL+'/api/rastreio')).json();const m={};(j.vehicles||[]).forEach(v=>{if(v.vinculado&&v.vinculo&&v.vinculo.id)m[v.vinculo.tabela+':'+v.vinculo.id]={min:v.minutosAtras,stale:v.stale,vel:v.velocidade}});posByRow=m;if(typeof render==='function')render()}catch(e){}}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function fd(s) {
   if (!s) return '';
@@ -1084,7 +1090,7 @@ function cardH(m, showConfirm, showManut, showArrival) {
     +'<div class="cf"><label>'+lbl2+'</label><span class="'+(val2==='—'?'nil':'')+'">'+val2+'</span></div>'
     +'<div class="cf"><label>Retorno</label><span style="'+(isOverdue(m)?'color:#ef4444;font-weight:600':'')+'" class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
     +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
-    +obsHtml+'</div></div>';
+    +obsHtml+'</div>'+posBadge(m.id)+'</div>';
 }
 
 // ── Render: Locada Card (BUG FIX #3: added Hist button) ──
@@ -1105,6 +1111,7 @@ function locH(m) {
     +'<div class="cf"><label>Retorno Previsto</label><span style="'+(isOverdue(m)?'color:#ef4444;font-weight:600':semDataRetorno(m)?'color:#f59e0b;font-weight:600':'')+'" class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'⚠ preencher')+'</span></div>'
     +'<div class="cf"><label>Próx. Locação</label><span class="'+(m.dn?'':'nil')+'">'+(m.dn?fd(m.dn):'—')+'</span></div>'
     +'</div>'
+    +posBadge(m.id)
     +'<div class="lacts">'
     +'<button class="abtn ret" onclick="iRet(\''+esc(m.id)+'\')">'+IC.ret+'Retorno</button>'
     +'<button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')">'+IC.ren+'Renovar</button>'
@@ -1128,6 +1135,7 @@ function marcH(m) {
     +'<div class="cf"><label>Data Locação</label><span>'+(m.dl?fd(m.dl):'—')+'</span></div>'
     +'<div class="cf"><label>Retorno Previsto</label><span class="'+(m.dr?'':'nil')+'">'+(m.dr?fd(m.dr):'—')+'</span></div>'
     +'</div>'
+    +posBadge(m.id)
     +'<div class="lacts">'
     +'<button class="abtn ret" onclick="iRetM(\''+esc(m.id)+'\')">'+IC.ret+'Retorno</button>'
     +'<button class="abtn ren" onclick="oRen(\''+esc(m.id)+'\')">'+IC.ren+'Renovar</button>'
@@ -1146,6 +1154,7 @@ function vrCardHtml(m) {
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
     +'</div><span class="vr-badge '+bc+'">'+esc(m.column)+'</span></div>'
     +(m.obs?'<div style="background:var(--bg);padding:8px 10px;border-radius:8px;font-size:12px;color:var(--text);margin-bottom:8px">'+esc(m.obs)+'</div>':'')
+    +posBadge(m.id)
     +'<div class="lacts">'
     +'<button class="abtn hist" onclick="showMaqHist(\''+esc(m.id)+'\')">'+IC.hist+'Hist.</button>'
     +'<button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')">'+IC.edit+'Editar</button>'
@@ -1786,6 +1795,7 @@ function showInstallBanner(){
 if(new URLSearchParams(window.location.search).get('auth')===EDIT_PASS){isEditor=true;sessionStorage.setItem('mmc_editor','true')}
 applyMode();
 loadAll();
+loadPos(); setInterval(loadPos,60000);
 </script>
 </body>
 </html>
