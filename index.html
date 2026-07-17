@@ -386,6 +386,13 @@
       transition: transform .22s cubic-bezier(.34,1.56,.64,1);
     }
     .mbg.open .modal { transform: scale(1) translateY(0); }
+    .mapbg { position: fixed; inset: 0; background: rgba(15,23,42,.7); backdrop-filter: blur(3px); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 18px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .mapbg.open { opacity: 1; pointer-events: all; }
+    .mapbox { position: relative; width: min(1120px, 96vw); height: min(82vh, 900px); background: #0f1b3d; border-radius: 14px; overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
+    .mapbox iframe { width: 100%; height: 100%; border: 0; display: block; }
+    .mapx { position: absolute; top: 10px; right: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(0,0,0,.55); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .mapx svg { width: 18px; height: 18px; }
+    .mapx:hover { background: rgba(0,0,0,.8); }
     .mhd {
       padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between;
     }
@@ -767,6 +774,9 @@
   <div class="mbd" id="detBody"></div>
 </div></div>
 
+<!-- Overlay do mapa (ver no mapa sem sair da página) -->
+<div class="mapbg" id="mapBg"><div class="mapbox"><button class="mapx" onclick="fecharMapa()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button><iframe id="mapFrame" src="about:blank" title="Rastreio no mapa"></iframe></div></div>
+
 <!-- Confirm Dialog -->
 <div class="cobg" id="cBg"><div class="cobox">
   <div class="coicon" id="cIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>
@@ -806,7 +816,7 @@ function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 const RASTREIO_URL='https://mmc-rastreio.vercel.app';
 let posByRow={};
 function haQ(min){if(min==null)return'sem sinal';if(min<0)min=0;if(min<1)return'agora';if(min<60)return'há '+min+' min';const h=Math.floor(min/60);if(h<24)return'há '+h+'h';const d=Math.floor(h/24);if(d<30)return'há '+d+'d';return'há '+Math.floor(d/30)+' meses'}
-function posBadge(id){const p=posByRow['maquinas:'+id];if(!p)return'';const cor=p.stale?'#f59e0b':(p.vel>0?'#10b981':'#6b7280');return '<div style="margin-top:8px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">'+'<span style="display:inline-flex;align-items:center;gap:5px;color:'+cor+';font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:'+cor+'"></span>📍 '+haQ(p.min)+(p.vel>0?(' · '+p.vel+' km/h'):'')+'</span>'+'<a href="'+RASTREIO_URL+'/?focus='+encodeURIComponent(id)+'" target="_blank" rel="noopener" style="color:var(--navy);text-decoration:none;font-weight:600">ver no mapa →</a></div>'}
+function posBadge(id){const p=posByRow['maquinas:'+id];if(!p)return'';const cor=p.stale?'#f59e0b':(p.vel>0?'#10b981':'#6b7280');return '<div style="margin-top:8px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">'+'<span style="display:inline-flex;align-items:center;gap:5px;color:'+cor+';font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:'+cor+'"></span>📍 '+haQ(p.min)+(p.vel>0?(' · '+p.vel+' km/h'):'')+'</span>'+'<a href="javascript:void(0)" onclick="verNoMapa(\''+esc(id)+'\')" style="color:var(--navy);text-decoration:none;font-weight:600;cursor:pointer">ver no mapa →</a></div>'}
 async function loadPos(){try{const j=await(await fetch(RASTREIO_URL+'/api/rastreio')).json();const m={};(j.vehicles||[]).forEach(v=>{if(v.vinculado&&v.vinculo&&v.vinculo.id)m[v.vinculo.tabela+':'+v.vinculo.id]={min:v.minutosAtras,stale:v.stale,vel:v.velocidade}});posByRow=m;if(typeof render==='function')render()}catch(e){}}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function fd(s) {
@@ -1176,6 +1186,8 @@ function vrCardHtml(m) {
 function detField(l,v,style){return '<div class="cf"><label>'+l+'</label><span style="'+(style||'')+'" class="'+((!v||v==='—')?'nil':'')+'">'+(v||'—')+'</span></div>'}
 function detBtn(label,fn,id,cls,style){return '<button class="abtn '+(cls||'')+'"'+(style?(' style="'+style+'"'):'')+' onclick="closeDetail();'+fn+'(\''+esc(id)+'\')">'+esc(label)+'</button>'}
 function closeDetail(){document.getElementById('detBg').classList.remove('open')}
+function verNoMapa(id){const f=document.getElementById('mapFrame');f.src=RASTREIO_URL+'/?focus='+encodeURIComponent(id);document.getElementById('mapBg').classList.add('open')}
+function fecharMapa(){document.getElementById('mapBg').classList.remove('open');const f=document.getElementById('mapFrame');setTimeout(()=>{if(!document.getElementById('mapBg').classList.contains('open'))f.src='about:blank'},250)}
 function openMaqDetail(id){
   const m=M.find(x=>x.id===id); if(!m)return;
   const col=m.column||'—';
@@ -1194,7 +1206,7 @@ function openMaqDetail(id){
   if(m.obs)g+='<div style="background:var(--bg);padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:8px"><b>Obs:</b> '+esc(m.obs)+'</div>';
   const p=posByRow&&posByRow['maquinas:'+id];
   if(p){const cor=p.stale?'#f59e0b':(p.vel>0?'#10b981':'#6b7280');
-    g+='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0;padding:10px 12px;background:var(--bg);border-radius:8px"><span style="color:'+cor+';font-weight:600">📍 '+haQ(p.min)+(p.vel>0?(' · '+p.vel+' km/h'):' · parado')+'</span><a href="'+RASTREIO_URL+'/?focus='+encodeURIComponent(id)+'" target="_blank" rel="noopener" style="color:var(--navy);font-weight:600;text-decoration:none">ver no mapa →</a></div>';
+    g+='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0;padding:10px 12px;background:var(--bg);border-radius:8px"><span style="color:'+cor+';font-weight:600">📍 '+haQ(p.min)+(p.vel>0?(' · '+p.vel+' km/h'):' · parado')+'</span><a href="javascript:void(0)" onclick="verNoMapa(\''+esc(id)+'\')" style="color:var(--navy);font-weight:600;text-decoration:none;cursor:pointer">ver no mapa →</a></div>';
   }else g+='<div style="margin:6px 0;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted)">📍 sem posição do rastreador</div>';
   const isEd=document.body.classList.contains('editor-mode');
   let acts='<div class="lacts" style="margin-top:8px;flex-wrap:wrap">';
@@ -1799,6 +1811,8 @@ document.addEventListener('click',function(e){
   if(card&&card.dataset.id) openMaqDetail(card.dataset.id);
 });
 document.getElementById('detBg').addEventListener('click',e=>{if(e.target.id==='detBg')closeDetail()});
+document.getElementById('mapBg').addEventListener('click',e=>{if(e.target.id==='mapBg')fecharMapa()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('mapBg').classList.contains('open'))fecharMapa();else if(document.getElementById('detBg').classList.contains('open'))closeDetail()}});
 
 let searchTimer=null;
 function onManualFilter(){dashActiveFilter=null;dashActiveCard=null;updateDashUI();}
