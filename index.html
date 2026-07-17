@@ -521,7 +521,8 @@
     body:not(.editor-mode) .cb-d,
     body:not(.editor-mode) .cb-c { display: none; }
     body:not(.editor-mode) .lacts { display: none; }
-    body:not(.editor-mode) .card { cursor: default; }
+    body:not(.editor-mode) .card { cursor: pointer; }
+    .lcard { cursor: pointer; }
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1100px) { .board { grid-template-columns: repeat(2, 1fr); } }
@@ -758,6 +759,12 @@
     <button class="btnc" id="retCancel">Cancelar</button>
     <button class="btns" id="retConfirm" style="background:#f59e0b;color:#78350f">Iniciar Retorno</button>
   </div>
+</div></div>
+
+<!-- Ficha da Máquina (abre ao clicar no card) -->
+<div class="mbg" id="detBg"><div class="modal" style="max-width:520px">
+  <div class="mhd"><span class="mtitle" id="detT">Máquina</span><button class="mx" onclick="closeDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="mbd" id="detBody"></div>
 </div></div>
 
 <!-- Confirm Dialog -->
@@ -1102,7 +1109,7 @@ function locH(m) {
   const title=esc(m.modelo||m.name||'—');
   const overdue=overdueBadge(m);
   const vencClass=isOverdue(m)?' vencido':'';
-  return '<div class="lcard'+vencClass+'"'+(isOverdue(m)?' style="border-color:#fca5a5"':'')+'><div class="lcard-top">'
+  return '<div class="lcard'+vencClass+'" data-id="'+esc(m.id)+'"'+(isOverdue(m)?' style="border-color:#fca5a5"':'')+'><div class="lcard-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="lcard-info"><div class="cname">'+title+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
@@ -1127,7 +1134,7 @@ function locH(m) {
 // ── Render: Obra MMC Card (BUG FIX #3: added Hist button) ──
 function marcH(m) {
   const title=esc(m.modelo||m.name||'—');
-  return '<div class="lcard lcard-gold"><div class="lcard-top">'
+  return '<div class="lcard lcard-gold" data-id="'+esc(m.id)+'"><div class="lcard-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="lcard-info"><div class="cname">'+title+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
@@ -1152,7 +1159,7 @@ function marcH(m) {
 function vrCardHtml(m) {
   const title=esc(m.modelo||m.name||'—');
   const bc=m.column==='Venda'?'vr-venda':m.column==='Reforma'?'vr-reforma':'vr-decidir';
-  return '<div class="lcard"><div class="lcard-top">'
+  return '<div class="lcard" data-id="'+esc(m.id)+'"><div class="lcard-top">'
     +(m.marca?marcaBadge(m.marca):'')
     +'<div class="lcard-info"><div class="cname">'+title+'</div>'
     +(m.serie?'<div class="cserie">Série: '+esc(m.serie)+'</div>':'')
@@ -1163,6 +1170,46 @@ function vrCardHtml(m) {
     +'<button class="abtn hist" onclick="showMaqHist(\''+esc(m.id)+'\')">'+IC.hist+'Hist.</button>'
     +'<button class="abtn edt" onclick="oEdit(\''+esc(m.id)+'\')">'+IC.edit+'Editar</button>'
     +'</div></div>';
+}
+
+// ── Ficha da máquina (clica no card) ──
+function detField(l,v,style){return '<div class="cf"><label>'+l+'</label><span style="'+(style||'')+'" class="'+((!v||v==='—')?'nil':'')+'">'+(v||'—')+'</span></div>'}
+function detBtn(label,fn,id,cls,style){return '<button class="abtn '+(cls||'')+'"'+(style?(' style="'+style+'"'):'')+' onclick="closeDetail();'+fn+'(\''+esc(id)+'\')">'+esc(label)+'</button>'}
+function closeDetail(){document.getElementById('detBg').classList.remove('open')}
+function openMaqDetail(id){
+  const m=M.find(x=>x.id===id); if(!m)return;
+  const col=m.column||'—';
+  const sc={'Locada':'#1e40af','Disponível':'#065f46','Manutenção':'#92400e','Reservado':'#5b21b6','Retornando':'#b45309','Obra MMC':'#a16207','Venda':'#991b1b','Reforma':'#991b1b','A decidir':'#6b7280'}[col]||'#334155';
+  document.getElementById('detT').textContent=(m.modelo||m.name||'—')+(m.marca?(' · '+m.marca):'');
+  let g='<div class="cgrid" style="margin-bottom:6px">';
+  g+=detField('Situação','<b style="color:'+sc+'">'+esc(col)+'</b>');
+  g+=detField('Manutenção',esc(m.ms||'—'));
+  g+=detField('Série',esc(m.serie||'—'));
+  if(m.cc)g+=detField(col==='Reservado'?'Reservado para':'Cliente',esc(m.cc));
+  if(m.nc)g+=detField('Próximo cliente',esc(m.nc));
+  if(m.dl)g+=detField('Data locação',fd(m.dl));
+  if(m.dr)g+=detField('Retorno previsto',fd(m.dr),isOverdue(m)?'color:#ef4444;font-weight:600':'');
+  if(m.dn)g+=detField('Próx. locação',fd(m.dn));
+  g+='</div>';
+  if(m.obs)g+='<div style="background:var(--bg);padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:8px"><b>Obs:</b> '+esc(m.obs)+'</div>';
+  const p=posByRow&&posByRow['maquinas:'+id];
+  if(p){const cor=p.stale?'#f59e0b':(p.vel>0?'#10b981':'#6b7280');
+    g+='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0;padding:10px 12px;background:var(--bg);border-radius:8px"><span style="color:'+cor+';font-weight:600">📍 '+haQ(p.min)+(p.vel>0?(' · '+p.vel+' km/h'):' · parado')+'</span><a href="'+RASTREIO_URL+'/?focus='+encodeURIComponent(id)+'" target="_blank" rel="noopener" style="color:var(--navy);font-weight:600;text-decoration:none">ver no mapa →</a></div>';
+  }else g+='<div style="margin:6px 0;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted)">📍 sem posição do rastreador</div>';
+  const isEd=document.body.classList.contains('editor-mode');
+  let acts='<div class="lacts" style="margin-top:8px;flex-wrap:wrap">';
+  acts+=detBtn('Histórico','showMaqHist',id,'hist');   // histórico é read-only, sempre
+  if(isEd){
+    if(col==='Locada'){acts+=detBtn('Retorno','iRet',id,'ret');acts+=detBtn('Renovar','oRen',id,'ren');}
+    else if(col==='Obra MMC'||isMarcelo(m)){acts+=detBtn('Retorno','iRetM',id,'ret');acts+=detBtn('Renovar','oRen',id,'ren');}
+    else if(col==='Reservado'){acts+=detBtn('Confirmar entrega','cEnt',id,'');}
+    acts+=detBtn('Editar','oEdit',id,'edt');
+    acts+=detBtn('Remover','aDel',id,'','color:#ef4444');
+  }
+  acts+='</div>';
+  if(!isEd)acts+='<p style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">Modo visualização — entre como editor pra alterar.</p>';
+  document.getElementById('detBody').innerHTML=g+acts;
+  document.getElementById('detBg').classList.add('open');
 }
 
 // ── Main Render ──
@@ -1745,6 +1792,13 @@ function dashFilter(type){
 document.querySelectorAll('.dash-card.clickable').forEach(c=>{
   c.addEventListener('click',()=>dashFilter(c.dataset.dash));
 });
+// Clicar no corpo do card abre a ficha (botões/links têm as próprias ações)
+document.addEventListener('click',function(e){
+  if(e.target.closest('button,a,input,select,textarea,.mbg,.cobg,.dash-card')) return;
+  const card=e.target.closest('.card[data-id],.lcard[data-id]');
+  if(card&&card.dataset.id) openMaqDetail(card.dataset.id);
+});
+document.getElementById('detBg').addEventListener('click',e=>{if(e.target.id==='detBg')closeDetail()});
 
 let searchTimer=null;
 function onManualFilter(){dashActiveFilter=null;dashActiveCard=null;updateDashUI();}
