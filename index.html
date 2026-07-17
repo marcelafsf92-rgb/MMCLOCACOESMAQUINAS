@@ -1844,8 +1844,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){cModal();closeR();c
 
 // ── PWA: Service Worker + Install Prompt ──
 if('serviceWorker' in navigator){
+  let swRefreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(swRefreshing)return;swRefreshing=true;location.reload()});
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js').then(r=>{r.update&&r.update()}).catch(()=>{});
   });
 }
 

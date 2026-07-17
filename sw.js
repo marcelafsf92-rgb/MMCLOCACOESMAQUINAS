@@ -2,7 +2,7 @@
 // Cache estratégia: network-first para HTML, cache-first para assets
 // v2: BUGFIX — não cacheia Supabase (causava "salva mas volta ao valor antigo" no mobile)
 
-const CACHE_VERSION = 'mmc-v3';
+const CACHE_VERSION = 'mmc-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
