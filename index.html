@@ -10,6 +10,7 @@
   <meta name="theme-color" content="#1E3A8A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script>if(window.self!==window.top)document.documentElement.classList.add('embedded')</script>
   <meta name="apple-mobile-web-app-title" content="MMC Painel">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -50,6 +51,8 @@
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
     }
+    /* Dentro do Portal (iframe), o Portal já cuida da safe-area — não duplicar */
+    html.embedded body { padding-top: 0 !important; padding-bottom: 0 !important; }
 
     /* ===== LOADING BAR ===== */
     #loadBar {
