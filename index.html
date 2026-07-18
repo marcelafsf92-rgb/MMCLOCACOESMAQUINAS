@@ -51,8 +51,9 @@
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
     }
-    /* Dentro do Portal (iframe), o Portal já cuida da safe-area — não duplicar */
-    html.embedded body { padding-top: 0 !important; padding-bottom: 0 !important; }
+    /* Dentro do Portal (iframe), o Portal já cuida da safe-area — não duplicar.
+       Mantém um respiro no fim da rolagem pro último card não colar na barra de baixo. */
+    html.embedded body { padding-top: 0 !important; padding-bottom: 28px !important; }
 
     /* ===== LOADING BAR ===== */
     #loadBar {
